@@ -64,8 +64,7 @@ export function AuthShell({
 
           <ul className="mt-10 flex flex-col gap-4">
             {features.map((feature) => (
-              <li key={feature} className="flex items-start gap-3 text-[15px] text-white/90">
-                <CheckIcon />
+              <li key={feature} className="text-[15px] text-white/90">
                 <span>{feature}</span>
               </li>
             ))}
