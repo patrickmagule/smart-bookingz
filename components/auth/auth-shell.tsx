@@ -73,7 +73,7 @@ export function AuthShell({
 
         <div>
           {/* Real photo of a hostel room from public/hostel.png */}
-          <div className="mb-6 h-36 w-full overflow-hidden rounded-xl">
+          <div className="mb-6 h-36 w-full overflow-hidden rounded-xl lg:h-1/2">
             <img src="/hostel.png" alt="Hostel room" className="h-full w-full object-cover" />
           </div>
           <p className="text-xs text-white/50">
