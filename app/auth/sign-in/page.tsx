@@ -7,8 +7,7 @@ import { AuthShell } from '@/components/auth/auth-shell';
 import { PasswordField } from '@/components/auth/password-field';
 
 const FEATURES = [
-  '134 verified hostel listings near MUBAS',
-  'Real-time bed availability — no double bookings',
+  'Real-time bed availability, no double bookings',
   'Secure in-app messaging with landlords',
   'Ratings and reviews from real residents',
 ];
@@ -23,9 +22,9 @@ export default function SignInPage() {
       features={FEATURES}
     >
       <h1 className="font-serif text-3xl font-semibold text-[#16233F]">Sign in to your account</h1>
-      <p className="mt-2 text-sm text-slate-500">Enter your credentials below.</p>
+      <p className="mt-2 mb-8 text-sm text-slate-500">Enter your credentials below.</p>
 
-      <form action={formAction} className="mt-8 flex flex-col gap-5" noValidate>
+      <form action={formAction} className="flex flex-col gap-5" noValidate>
         <div>
           <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-700">
             Email address

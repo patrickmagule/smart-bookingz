@@ -21,7 +21,18 @@ export async function signInWithEmail(
   const result = await auth.signIn.email({ email, password });
 
   if (result.error) {
-    // Deliberately generic — don't reveal whether the email exists.
+    const errorCode = result.error && typeof result.error === 'object' && 'code' in result.error
+      ? String(result.error.code)
+      : undefined;
+
+    // Log detailed error for debugging (will see in server logs)
+    console.error('Sign-in error:', {
+      email,
+      errorMessage: result.error.message,
+      errorCode,
+      fullError: result.error,
+    });
+    // Return generic error to user (don't reveal email existence)
     return { error: 'Incorrect email or password.' };
   }
 
@@ -55,11 +66,18 @@ export async function signInWithEmail(
     }
   }
 
-  // No role is selected on this form on purpose: the account's role
-  // lives in the `users` table, not in anything the client sends.
-  // Route by role from a server component that reads it after redirect,
-  // e.g.:
-  //   const [row] = await sql`SELECT role FROM users WHERE auth_id = ${authUser.id}`;
-  //   redirect(row.role === 'OWNER' ? '/owner' : '/dashboard');
-  redirect('/dashboard');
+  if (authUser?.id) {
+    const [row] = await sql`SELECT role FROM users WHERE auth_id = ${authUser.id} LIMIT 1`;
+    if (row) {
+      if (row.role === 'OWNER') {
+        redirect('/hostelOwner');
+      } else if (row.role === 'ADMIN') {
+        redirect('/admin');
+      } else {
+        redirect('/student');
+      }
+    }
+  }
+
+  redirect('/');
 }

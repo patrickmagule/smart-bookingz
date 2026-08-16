@@ -8,8 +8,7 @@ import { PasswordField } from '@/components/auth/password-field';
 import { RoleToggle, type SignUpRole } from '@/components/auth/role-toggle';
 
 const FEATURES = [
-  '134 verified hostel listings near MUBAS',
-  'Real-time bed availability — no double bookings',
+  'Real-time bed availability,no double bookings',
   'Secure in-app messaging with landlords',
   'Ratings and reviews from real residents',
 ];
@@ -25,9 +24,9 @@ export default function SignUpPage() {
       features={FEATURES}
     >
       <h1 className="font-serif text-3xl font-semibold text-[#16233F]">Create your account</h1>
-      <p className="mt-2 text-sm text-slate-500">Tell us a bit about yourself to get started.</p>
+      <p className="mt-2 mb-8 text-sm text-slate-500">Tell us a bit about yourself to get started.</p>
 
-      <form action={formAction} className="mt-8 flex flex-col gap-5" noValidate>
+      <form action={formAction} className="flex flex-col gap-5" noValidate>
         {/* Only Student and Hostel Owner are offered here — Admin
             accounts are never created through the public sign-up form. */}
         <RoleToggle value={role} onChange={setRole} />

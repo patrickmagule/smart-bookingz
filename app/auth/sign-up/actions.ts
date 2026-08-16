@@ -48,21 +48,45 @@ export async function signUpWithEmail(
     email,
     password,
     name: `${firstName} ${lastName}`,
-    // Optional duplicate of the role on the Neon Auth user record itself
-    // (see the `additionalFields` config in lib/auth/server.ts) — handy
-    // if you later put role claims in the JWT for Neon RLS. The `users`
-    // table below is the actual source of truth for the app.
-    role,
   });
 
+  // If the auth client reported an error, handle duplicates specially.
   if (result.error) {
-    return { error: result.error.message || 'Could not create your account. Please try again.' };
+    const code = (result.error as any)?.code ?? '';
+    const msg = result.error.message ?? '';
+
+    // Known duplicate cases: tell user to sign in or reset password
+    if (String(code).includes('USER_ALREADY') || msg.toLowerCase().includes('already exists')) {
+      return { error: 'That email is already registered. Please sign in or reset your password if you forgot it.' };
+    }
+
+    return { error: msg || 'Could not create your account. Please try again.' };
   }
 
-  // Resolve the new Neon Auth user id. `result.data` is the expected
-  // shape for a successful signUp.email() call; the getSession() fallback
-  // covers the case where the beta SDK's response differs from that.
-  // Verify this against your installed @neondatabase/auth version.
+  // If the server returned a user object, act on its verification state.
+  const returnedUser = result.data?.user ?? (await auth.getSession()).data?.user;
+
+  if (returnedUser) {
+    if (returnedUser.emailVerified) {
+      // Email is already verified — don't create a duplicate app user.
+      return { error: 'That email is already registered. Please sign in or reset your password if you forgot it.' };
+    }
+
+    // Email exists but is not verified — proceed to provisioning (if needed)
+    const authId = returnedUser.id;
+
+    try {
+      await provisionAppUser({ authId, firstName, lastName, email, role });
+    } catch (err) {
+      console.error('Failed to provision app user after sign-up (existing user):', err);
+    }
+
+    // Redirect to verification so the user can finish verifying their email.
+    redirect(`/auth/verify-email?email=${encodeURIComponent(email)}`);
+    return null;
+  }
+
+  // Resolve the new Neon Auth user id for freshly created accounts.
   const authId = result.data?.user?.id ?? (await auth.getSession()).data?.user?.id;
 
   if (!authId) {
@@ -80,5 +104,7 @@ export async function signUpWithEmail(
     console.error('Failed to provision app user after sign-up:', err);
   }
 
-  redirect('/dashboard');
+  // Redirect to the verification page with the email so the user knows
+  // which inbox to check.
+  redirect(`/auth/verify-email?email=${encodeURIComponent(email)}`);
 }
