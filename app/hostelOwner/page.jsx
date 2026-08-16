@@ -38,7 +38,7 @@ export default async function HostelOwnerPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-serif text-3xl font-bold text-navy">Good morning, {authUser?.name?.split(' ')[0]} 👋</h1>
-          <p className="text-sm text-mist">Here's what's happening across your properties today.</p>
+          <p className="text-sm text-mist">Here&#39;s what&#39;s happening across your properties today.</p>
         </div>
       </div>
 
@@ -120,7 +120,7 @@ export default async function HostelOwnerPage() {
                 <p className="text-[10px] text-mist">2025-08-01 → 2026-01-31 (6 months)</p>
                 
                 <div className="mt-3 rounded-lg bg-gold/5 border border-gold/10 p-3 italic text-[10px] text-gold-dark">
-                  "Student wants to move in early. Requested a meeting to view the room first."
+                  &#34;Student wants to move in early. Requested a meeting to view the room first.&#34;
                 </div>
               </div>
             </div>

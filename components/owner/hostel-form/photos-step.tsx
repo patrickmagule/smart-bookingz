@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { UploadDropzone } from '@uploadthing/react';
+import { UploadDropzone } from '@/lib/uploadthing/uploadthing-components';
 import { Plus, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';

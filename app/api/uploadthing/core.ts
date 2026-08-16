@@ -5,7 +5,7 @@ import { sql } from "@/lib/db";
 const f = createUploadthing();
 
 export const ourFileRouter = {
-  hostelImage: f({ image: { maxFileSize: "4MB", maxFileCount: 5 } })
+  hostelImages: f({ image: { maxFileSize: "4MB", maxFileCount: 5 } })
     .middleware(async () => {
       const { data } = await auth.getSession();
       if (!data?.user) throw new Error("Unauthorized");
@@ -21,7 +21,7 @@ export const ourFileRouter = {
       return { uploadedBy: metadata.userId, url: file.url };
     }),
     
-  roomImage: f({ image: { maxFileSize: "4MB", maxFileCount: 5 } })
+  roomImages: f({ image: { maxFileSize: "4MB", maxFileCount: 5 } })
     .middleware(async () => {
       const { data } = await auth.getSession();
       if (!data?.user) throw new Error("Unauthorized");
