@@ -4,6 +4,8 @@ import { sql } from '@/lib/db';
 import { OwnerSidebar } from '@/components/owner/sidebar';
 import { OwnerHeader } from '@/components/owner/header';
 
+export const dynamic = 'force-dynamic';
+
 export default async function OwnerLayout({
   children,
 }: {
