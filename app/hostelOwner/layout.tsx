@@ -1,18 +1,17 @@
 import { auth } from '@/lib/auth/server';
 import { redirect } from 'next/navigation';
 import { sql } from '@/lib/db';
-import { OwnerSidebar } from '@/components/owner/sidebar';
-import { OwnerHeader } from '@/components/owner/header';
+import { OwnerTopNav } from '@/components/owner/ownerTopnav';
 
 export const dynamic = 'force-dynamic';
 
 export default async function OwnerLayout({
-  children,
-}: {
+                                            children,
+                                          }: {
   children: React.ReactNode;
 }) {
   const { data } = await auth.getSession();
-  
+
   if (!data?.user) {
     redirect('/auth/sign-in');
   }
@@ -30,16 +29,11 @@ export default async function OwnerLayout({
   }
 
   return (
-    <div className="flex min-h-screen overflow-x-hidden bg-[#FDFCF8] lg:gap-6 lg:p-6">
-      <OwnerSidebar />
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <OwnerHeader user={data.user} />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-0">
-          <div className="mx-auto max-w-7xl lg:py-2">
-            {children}
-          </div>
+      <div className="min-h-screen bg-[#FDFCF8]">
+        <OwnerTopNav user={data.user} />
+        <main className="px-4 py-6 lg:px-8 lg:py-8">
+          <div className="mx-auto max-w-7xl">{children}</div>
         </main>
       </div>
-    </div>
   );
 }
