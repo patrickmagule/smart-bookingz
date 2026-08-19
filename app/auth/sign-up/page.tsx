@@ -72,7 +72,7 @@ export default function SignUpPage() {
             type="email"
             required
             autoComplete="email"
-            placeholder="you@mubas.ac.mw"
+            placeholder="you@example.com"
             className="block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#16233F] focus:ring-2 focus:ring-[#16233F]/10"
           />
         </div>

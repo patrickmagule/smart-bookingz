@@ -44,6 +44,8 @@ export async function signUpWithEmail(
 
   const role = toAppRole(formRole as FormRole);
 
+  console.log('📝 Sign-up attempt:', { email, firstName, lastName, role });
+
   const result = await auth.signUp.email({
     email,
     password,
@@ -52,8 +54,16 @@ export async function signUpWithEmail(
 
   // If the auth client reported an error, handle duplicates specially.
   if (result.error) {
-    const code = (result.error as any)?.code ?? '';
-    const msg = result.error.message ?? '';
+    // Avoid using `any` to satisfy eslint rules — narrow the error shape safely.
+    const errObj = result.error as unknown;
+    let code = '';
+    let msg = '';
+
+    if (errObj && typeof errObj === 'object') {
+      const eo = errObj as Record<string, unknown>;
+      if (typeof eo.code === 'string' || typeof eo.code === 'number') code = String(eo.code);
+      if (typeof eo.message === 'string') msg = eo.message;
+    }
 
     // Known duplicate cases: tell user to sign in or reset password
     if (String(code).includes('USER_ALREADY') || msg.toLowerCase().includes('already exists')) {

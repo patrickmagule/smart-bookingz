@@ -21,19 +21,15 @@ export async function signInWithEmail(
   const result = await auth.signIn.email({ email, password });
 
   if (result.error) {
-    const errorCode = result.error && typeof result.error === 'object' && 'code' in result.error
-      ? String(result.error.code)
-      : undefined;
-
-    // Log detailed error for debugging (will see in server logs)
-    console.error('Sign-in error:', {
-      email,
-      errorMessage: result.error.message,
-      errorCode,
-      fullError: result.error,
+    console.error('SIGN-IN ERROR:', {
+      message: result.error.message,
+      code: (result.error as any)?.code,
+      error: result.error,
     });
-    // Return generic error to user (don't reveal email existence)
-    return { error: 'Incorrect email or password.' };
+
+    return {
+      error: result.error.message || 'Authentication failed.',
+    };
   }
 
   const authUser = result.data?.user ?? (await auth.getSession()).data?.user;
