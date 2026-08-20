@@ -36,7 +36,24 @@ const FACILITIES = [
   { id: 'furnished', name: 'Furnished Rooms', icon: BedDouble },
 ];
 
-export function BasicInfoStep({ data, updateData, onContinue }: any) {
+type BasicInfoData = {
+  name?: string;
+  address?: string;
+  area?: string;
+  distance?: string;
+  phone?: string;
+  genderPolicy?: string;
+  description?: string;
+  facilities?: string[];
+};
+
+type BasicInfoProps = {
+  data: BasicInfoData;
+  updateData: (fields: Partial<BasicInfoData>) => void;
+  onContinue: () => void;
+};
+
+export function BasicInfoStep({ data, updateData, onContinue }: BasicInfoProps) {
   const [descriptionCount, setDescriptionCount] = useState(data.description?.length || 0);
 
   const toggleFacility = (id: string) => {

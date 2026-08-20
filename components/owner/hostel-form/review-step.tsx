@@ -2,7 +2,25 @@
 
 import { CheckCircle2, MapPin, Home, Bed, Info, Images, Wallet } from 'lucide-react';
 
-export function ReviewStep({ data, onSubmit, onBack, isSubmitting }: any) {
+type Bed = { id: number; label: string };
+type Room = { id?: number; name?: string; area?: string; genderPolicy?: string; rooms?: Room[]; beds?: Bed[]; price?: string | number };
+type ImageItem = { file?: File; previewUrl?: string; url?: string; isPrimary?: boolean };
+
+type ReviewStepProps = {
+  data: { 
+    name?: string; 
+    area?: string; 
+    genderPolicy?: string; 
+    rooms?: Room[]; 
+    images?: ImageItem[];
+    facilities?: string[];
+  };
+  onSubmit: () => void;
+  onBack: () => void;
+  isSubmitting?: boolean;
+};
+
+export function ReviewStep({ data, onSubmit, onBack, isSubmitting }: ReviewStepProps) {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center">
@@ -48,9 +66,50 @@ export function ReviewStep({ data, onSubmit, onBack, isSubmitting }: any) {
             <div className="flex justify-between text-sm">
               <span className="text-slate-500">Total Beds</span>
               <span className="font-semibold text-navy">
-                {data.rooms?.reduce((acc: number, room: any) => acc + (room.beds?.length || 0), 0) || 0}
+                {data.rooms?.reduce((acc: number, room: Room) => acc + (room.beds?.length || 0), 0) || 0}
               </span>
             </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-5 space-y-4 md:col-span-2">
+          <div className="flex items-center gap-2 text-navy font-bold text-xs uppercase tracking-wider">
+            <Bed size={14} className="text-gold" />
+            Rooms & Pricing
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {data.rooms?.map((room, idx) => (
+              <div key={idx} className="rounded-lg bg-white p-3 border border-slate-100 flex justify-between items-center">
+                <div>
+                  <div className="text-sm font-semibold text-navy">{room.name}</div>
+                  <div className="text-[10px] text-slate-500">{room.beds?.length || 0} Beds</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-bold text-navy">MK {Number(room.price || 0).toLocaleString()}</div>
+                  <div className="text-[10px] text-slate-500">per bed / month</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-5 space-y-4 md:col-span-2">
+          <div className="flex items-center gap-2 text-navy font-bold text-xs uppercase tracking-wider">
+            <Info size={14} className="text-gold" />
+            Facilities
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {data.facilities?.map((facilityId) => (
+              <span 
+                key={facilityId}
+                className="rounded-lg bg-white border border-slate-100 px-3 py-1.5 text-xs font-medium text-navy uppercase tracking-wide"
+              >
+                {facilityId.replace(/-/g, ' ')}
+              </span>
+            ))}
+            {(!data.facilities || data.facilities.length === 0) && (
+              <span className="text-xs text-slate-400">No facilities selected</span>
+            )}
           </div>
         </div>
 
@@ -60,9 +119,9 @@ export function ReviewStep({ data, onSubmit, onBack, isSubmitting }: any) {
             Photos ({data.images?.length || 0})
           </div>
           <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-            {data.images?.map((img: any) => (
-              <div key={img.url} className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-slate-200">
-                <img src={img.url} alt="Hostel preview" className="h-full w-full object-cover" />
+            {data.images?.map((img: ImageItem, idx: number) => (
+              <div key={img.url || img.previewUrl || idx} className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-slate-200">
+                <img src={img.url || img.previewUrl} alt="Hostel preview" className="h-full w-full object-cover" />
               </div>
             ))}
           </div>

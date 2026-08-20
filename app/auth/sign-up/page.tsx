@@ -77,6 +77,21 @@ export default function SignUpPage() {
           />
         </div>
 
+        <div>
+          <label htmlFor="phone" className="mb-1.5 block text-sm font-medium text-slate-700">
+            Phone number
+          </label>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            required
+            autoComplete="tel"
+            placeholder="0999..."
+            className="block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#16233F] focus:ring-2 focus:ring-[#16233F]/10"
+          />
+        </div>
+
         <PasswordField label="Password" autoComplete="new-password" />
         <PasswordField
           id="confirmPassword"

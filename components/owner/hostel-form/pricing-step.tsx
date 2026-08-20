@@ -1,6 +1,13 @@
 'use client';
 
-export function PricingStep({ data, updateData, onContinue, onBack }: any) {
+type PricingStepProps = {
+  data: { deposit?: string; otherFees?: string };
+  updateData: (fields: Partial<{ deposit?: string; otherFees?: string }>) => void;
+  onContinue: () => void;
+  onBack: () => void;
+};
+
+export function PricingStep({ data, updateData, onContinue, onBack }: PricingStepProps) {
   // Logic here could be to set global hostel deposit or other pricing details
   // but currently bed prices are set in RoomsBedsStep.
   // We can use this to review pricing or set additional fees.

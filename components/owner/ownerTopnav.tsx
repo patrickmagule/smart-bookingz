@@ -12,7 +12,6 @@ import {
     LogOut,
     Menu,
     X,
-    Plus,
     Bell,
     ChevronDown,
 } from 'lucide-react';
@@ -85,14 +84,6 @@ export function OwnerTopNav({ user }: OwnerTopNavProps) {
 
                 {/* Right side */}
                 <div className="hidden lg:flex items-center gap-3 shrink-0">
-                    <Link
-                        href="/hostelOwner/hostels/new"
-                        className="flex items-center gap-2 rounded-lg bg-gold px-3.5 py-2 text-xs font-normal text-navy transition-all hover:bg-gold-dark active:scale-[0.98]"
-                    >
-                        <Plus size={15} />
-                        Add Hostel
-                    </Link>
-
                     <button className="relative rounded-lg p-2 text-mist transition-colors hover:bg-white/5 hover:text-white">
                         <Bell size={18} />
                         <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-gold" />
@@ -153,14 +144,6 @@ export function OwnerTopNav({ user }: OwnerTopNavProps) {
             {/* Mobile dropdown */}
             {mobileOpen && (
                 <div className="lg:hidden border-t border-white/10 bg-navy px-4 py-3">
-                    <Link
-                        href="/hostelOwner/hostels/new"
-                        onClick={() => setMobileOpen(false)}
-                        className="mb-2 flex items-center justify-center gap-2 rounded-xl bg-gold px-4 py-3 text-sm font-normal text-navy"
-                    >
-                        <Plus size={16} />
-                        Add New Hostel
-                    </Link>
                     <div className="space-y-1">
                         {navItems.map((item) => {
                             const isActive = pathname === item.href;

@@ -131,6 +131,6 @@ export default async function HostelsPage() {
   );
 }
 
-function cn(...inputs: any[]) {
+function cn(...inputs: Array<string | number | boolean | null | undefined>) {
   return inputs.filter(Boolean).join(' ');
 }

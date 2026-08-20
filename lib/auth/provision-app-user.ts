@@ -16,12 +16,14 @@ export async function provisionAppUser({
                                            firstName,
                                            lastName,
                                            email,
+                                           phone,
                                            role,
                                        }: {
     authId: string;
     firstName: string;
     lastName: string;
     email: string;
+    phone?: string;
     role: AppRole;
 }): Promise<string> {
     const existing = await sql`
@@ -36,8 +38,8 @@ export async function provisionAppUser({
 
     await sql.transaction([
         sql`
-      INSERT INTO users (id, auth_id, first_name, last_name, email, role)
-      VALUES (${userId}, ${authId}, ${firstName}, ${lastName}, ${email}, ${role})
+      INSERT INTO users (id, auth_id, first_name, last_name, email, phone, role)
+      VALUES (${userId}, ${authId}, ${firstName}, ${lastName}, ${email}, ${phone || null}, ${role})
       ON CONFLICT (auth_id) DO NOTHING
     `,
         role === 'STUDENT'

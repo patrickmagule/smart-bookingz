@@ -99,6 +99,9 @@ CREATE TABLE hostels (
                          address           TEXT,
                          area              VARCHAR(150),
                          city              VARCHAR(100),
+                         contact_phone     VARCHAR(30),
+                         deposit_amount    DECIMAL(12, 2) CHECK (deposit_amount IS NULL OR deposit_amount >= 0),
+                         other_fees        TEXT,
                          location          GEOGRAPHY(POINT, 4326),
                          gender_preference VARCHAR(30),
                          status            hostel_status NOT NULL DEFAULT 'DRAFT',
@@ -404,6 +407,14 @@ ALTER TABLE messaging_payments
 ALTER TABLE reviews
     ADD CONSTRAINT valid_rating
         CHECK (rating BETWEEN 1 AND 5);
+ALTER TABLE hostels
+    ADD COLUMN contact_phone     VARCHAR(30),
+  ADD COLUMN deposit_amount DECIMAL(12, 2),
+  ADD COLUMN other_fees TEXT;
+
+ALTER TABLE hostels
+    ADD CONSTRAINT non_negative_deposit
+        CHECK (deposit_amount IS NULL OR deposit_amount >= 0);
 
 ALTER TABLE reports
     ADD CONSTRAINT report_has_target

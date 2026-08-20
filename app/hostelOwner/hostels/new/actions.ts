@@ -5,8 +5,8 @@ import { sql } from '@/lib/db';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
-type Bed = { label: string; price?: string | number };
-type Room = { name: string; description?: string; beds?: Bed[] };
+type Bed = { label: string };
+type Room = { name: string; description?: string; price?: string | number; beds?: Bed[] };
 type Image = { url: string; isPrimary?: boolean };
 
 type CreateHostelPayload = {
@@ -16,6 +16,9 @@ type CreateHostelPayload = {
   area: string;
   city: string;
   genderPolicy: string;
+  phone?: string;
+  deposit?: string | number;
+  otherFees?: string;
   facilities?: string[];
   images?: Image[];
   rooms?: Room[];
@@ -25,7 +28,7 @@ export async function createHostel(payload: CreateHostelPayload) {
   const { data } = await auth.getSession();
   if (!data?.user) throw new Error("Unauthorized");
 
-  const [user] = await sql`SELECT id, role FROM users WHERE auth_id = ${data.user.id} LIMIT 1`;
+  const [user] = await sql`SELECT id, role, phone FROM users WHERE auth_id = ${data.user.id} LIMIT 1`;
   if (!user || user.role !== 'OWNER') throw new Error("Forbidden");
 
   const {
@@ -35,20 +38,40 @@ export async function createHostel(payload: CreateHostelPayload) {
     area,
     city,
     genderPolicy,
+    phone,
+    deposit,
+    otherFees,
     facilities = [],
     images = [],
     rooms = []
   } = payload;
+  
+  const FACILITY_MAP: Record<string, string> = {
+    'wifi': 'Wi-Fi',
+    'security': 'CCTV Security',
+    'generator': 'Backup Generator',
+    'water': 'Water 24/7',
+    'common-room': 'Common Room',
+    'study-area': 'Study Area',
+    'laundry': 'Laundry Room',
+    'parking': 'Parking',
+    'kitchen': 'Kitchen',
+    'guard': 'Security Guard',
+    'sports': 'Sports Ground',
+    'lounge': 'Rooftop Lounge',
+    'ensuite': 'En-suite Bathrooms',
+    'furnished': 'Furnished Rooms',
+  };
 
   // Run everything inside a transaction to ensure clean rolls back on error
   try {
     // 1. Insert Hostel
     const [hostel] = await sql`
       INSERT INTO hostels (
-        owner_id, name, description, address, area, city, gender_preference, status
+        owner_id, name, description, address, area, city, gender_preference, status, contact_phone, deposit_amount, other_fees
       )
       VALUES (
-        ${user.id}, ${name}, ${description}, ${address}, ${area}, ${city}, ${genderPolicy}, 'DRAFT'
+        ${user.id}, ${name}, ${description}, ${address}, ${area}, ${city}, ${genderPolicy}, 'DRAFT', ${phone || user.phone || null}, ${deposit ? Number(deposit) : null}, ${otherFees || null}
       )
       RETURNING id
     `;
@@ -63,7 +86,8 @@ export async function createHostel(payload: CreateHostelPayload) {
     }
 
     // 3. Handle Amenities / Facilities
-    for (const facilityName of facilities) {
+    for (const facilityId of facilities) {
+      const facilityName = FACILITY_MAP[facilityId] || facilityId;
       // Find or insert the amenity dynamically
       const [amenity] = await sql`
         INSERT INTO amenities (name)
@@ -81,12 +105,11 @@ export async function createHostel(payload: CreateHostelPayload) {
 
     // 4. Insert Rooms and Beds (room_spaces)
     for (const room of rooms) {
-      // Calculate average or baseline room price from beds
-      const basePrice = room.beds?.[0]?.price ? Number(room.beds[0].price) : 0;
+      const roomPrice = room.price ? Number(room.price) : 0;
 
       const [insertedRoom] = await sql`
         INSERT INTO rooms (hostel_id, room_number, description, price_per_month)
-        VALUES (${hostel.id}, ${room.name}, ${room.description || null}, ${basePrice})
+        VALUES (${hostel.id}, ${room.name}, ${room.description || null}, ${roomPrice})
         RETURNING id
       `;
 

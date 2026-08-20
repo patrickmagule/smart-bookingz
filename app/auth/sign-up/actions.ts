@@ -20,11 +20,12 @@ export async function signUpWithEmail(
   const email = (formData.get('email') as string | null)?.trim() ?? '';
   const firstName = (formData.get('firstName') as string | null)?.trim() ?? '';
   const lastName = (formData.get('lastName') as string | null)?.trim() ?? '';
+  const phone = (formData.get('phone') as string | null)?.trim() ?? '';
   const password = (formData.get('password') as string | null) ?? '';
   const confirmPassword = (formData.get('confirmPassword') as string | null) ?? '';
   const formRole = formData.get('role') as string | null;
 
-  if (!email || !firstName || !lastName || !password) {
+  if (!email || !firstName || !lastName || !password || !phone) {
     return { error: 'Please fill in all required fields.' };
   }
 
@@ -86,7 +87,7 @@ export async function signUpWithEmail(
     const authId = returnedUser.id;
 
     try {
-      await provisionAppUser({ authId, firstName, lastName, email, role });
+      await provisionAppUser({ authId, firstName, lastName, email, phone, role });
     } catch (err) {
       console.error('Failed to provision app user after sign-up (existing user):', err);
     }
@@ -107,7 +108,7 @@ export async function signUpWithEmail(
   }
 
   try {
-    await provisionAppUser({ authId, firstName, lastName, email, role });
+    await provisionAppUser({ authId, firstName, lastName, email, phone, role });
   } catch (err) {
     // Don't block the sign-up on this — the sign-in action retries
     // provisioning for accounts that are missing a `users` row.

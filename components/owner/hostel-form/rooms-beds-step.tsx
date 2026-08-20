@@ -15,8 +15,18 @@ const ROOM_TYPES = [
   { id: 'Quad', name: 'Quad' },
 ];
 
-export function RoomsBedsStep({ data, updateData, onContinue, onBack }: any) {
-  const rooms = data.rooms || [{ id: Date.now(), name: 'Room 1', type: 'Single', description: '', amenities: [], beds: [{ id: Date.now() + 1, label: 'Bed A', price: '' }] }];
+type Bed = { id: number; label: string };
+type Room = { id: number; name: string; type: string; description?: string; price: string | number; amenities?: string[]; beds: Bed[] };
+
+type RoomsBedsStepProps = {
+  data: { rooms?: Room[] };
+  updateData: (fields: Partial<{ rooms: Room[] }>) => void;
+  onContinue: () => void;
+  onBack: () => void;
+};
+
+export function RoomsBedsStep({ data, updateData, onContinue, onBack }: RoomsBedsStepProps) {
+  const rooms: Room[] = data.rooms || [{ id: Date.now(), name: 'Room 1', type: 'Single', description: '', price: '', amenities: [], beds: [{ id: Date.now() + 1, label: 'Bed A' }] }];
 
   const addRoom = () => {
     const newRoom = {
@@ -24,43 +34,48 @@ export function RoomsBedsStep({ data, updateData, onContinue, onBack }: any) {
       name: `Room ${rooms.length + 1}`,
       type: 'Single',
       description: '',
+      price: '',
       amenities: [],
-      beds: [{ id: Date.now() + 1, label: 'Bed A', price: '' }]
+      beds: [{ id: Date.now() + 1, label: 'Bed A' }]
     };
     updateData({ rooms: [...rooms, newRoom] });
   };
 
   const removeRoom = (roomId: number) => {
-    updateData({ rooms: rooms.filter((r: any) => r.id !== roomId) });
+    updateData({ rooms: rooms.filter((r: Room) => r.id !== roomId) });
   };
 
-  const updateRoom = (roomId: number, updates: any) => {
+  const updateRoom = (roomId: number, updates: Partial<Room>) => {
     updateData({
-      rooms: rooms.map((r: any) => r.id === roomId ? { ...r, ...updates } : r)
+      rooms: rooms.map((r: Room) => r.id === roomId ? { ...r, ...updates } : r)
     });
   };
 
   const addBed = (roomId: number) => {
-    const room = rooms.find((r: any) => r.id === roomId);
-    const nextLabel = String.fromCharCode(65 + room.beds.length); // A, B, C...
-    const newBed = { id: Date.now(), label: `Bed ${nextLabel}`, price: '' };
-    updateRoom(roomId, { beds: [...room.beds, newBed] });
+    const room = rooms.find((r: Room) => r.id === roomId);
+    if (!room) return;
+    const nextLabel = String.fromCharCode(65 + (room.beds?.length || 0)); // A, B, C...
+    const newBed = { id: Date.now(), label: `Bed ${nextLabel}` };
+    updateRoom(roomId, { beds: [...(room.beds || []), newBed] });
   };
 
   const removeBed = (roomId: number, bedId: number) => {
-    const room = rooms.find((r: any) => r.id === roomId);
-    updateRoom(roomId, { beds: room.beds.filter((b: any) => b.id !== bedId) });
+    const room = rooms.find((r: Room) => r.id === roomId);
+    if (!room) return;
+    updateRoom(roomId, { beds: (room.beds || []).filter((b: Bed) => b.id !== bedId) });
   };
 
-  const updateBed = (roomId: number, bedId: number, updates: any) => {
-    const room = rooms.find((r: any) => r.id === roomId);
+  const updateBed = (roomId: number, bedId: number, updates: Partial<Bed>) => {
+    const room = rooms.find((r: Room) => r.id === roomId);
+    if (!room) return;
     updateRoom(roomId, {
-      beds: room.beds.map((b: any) => b.id === bedId ? { ...b, ...updates } : b)
+      beds: (room.beds || []).map((b: Bed) => b.id === bedId ? { ...b, ...updates } : b)
     });
   };
 
   const toggleAmenity = (roomId: number, amenity: string) => {
-    const room = rooms.find((r: any) => r.id === roomId);
+    const room = rooms.find((r: Room) => r.id === roomId);
+    if (!room) return;
     const amenities = room.amenities || [];
     if (amenities.includes(amenity)) {
       updateRoom(roomId, { amenities: amenities.filter((a: string) => a !== amenity) });
@@ -74,7 +89,7 @@ export function RoomsBedsStep({ data, updateData, onContinue, onBack }: any) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-navy">Rooms & Beds</h2>
-          <p className="text-xs text-mist">Each room can have multiple beds. Each bed is priced and booked individually.</p>
+          <p className="text-xs text-mist">Each room can have multiple beds. All beds in a room share the same price.</p>
         </div>
         <button
           onClick={addRoom}
@@ -86,7 +101,7 @@ export function RoomsBedsStep({ data, updateData, onContinue, onBack }: any) {
       </div>
 
       <div className="space-y-6">
-        {rooms.map((room: any, index: number) => (
+        {rooms.map((room: Room, index: number) => (
           <div key={room.id} className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
             <div className="flex items-center justify-between bg-slate-50/50 px-5 py-3 border-b border-slate-100">
               <div className="flex items-center gap-4">
@@ -114,15 +129,31 @@ export function RoomsBedsStep({ data, updateData, onContinue, onBack }: any) {
             </div>
 
             <div className="p-5 space-y-5">
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-navy uppercase tracking-wider">Room description (optional)</label>
-                <input
-                  type="text"
-                  value={room.description}
-                  onChange={(e) => updateRoom(room.id, { description: e.target.value })}
-                  placeholder="e.g. Spacious room with large windows and balcony access"
-                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-navy outline-none transition focus:border-navy"
-                />
+              <div className="grid gap-5 md:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-navy uppercase tracking-wider">Room description (optional)</label>
+                  <input
+                    type="text"
+                    value={room.description}
+                    onChange={(e) => updateRoom(room.id, { description: e.target.value })}
+                    placeholder="e.g. Spacious room with balcony"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-navy outline-none transition focus:border-navy"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-navy uppercase tracking-wider">Price per bed</label>
+                  <div className="flex items-center rounded-lg border border-slate-200 bg-white px-4 py-2 transition-within:border-navy">
+                    <span className="text-xs font-bold text-slate-400 mr-2">MK</span>
+                    <input
+                      type="number"
+                      value={room.price}
+                      onChange={(e) => updateRoom(room.id, { price: e.target.value })}
+                      placeholder="25,000"
+                      className="w-full text-sm text-navy outline-none"
+                    />
+                    <span className="text-xs text-slate-400 ml-2">/month</span>
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -167,7 +198,7 @@ export function RoomsBedsStep({ data, updateData, onContinue, onBack }: any) {
                 </div>
 
                 <div className="space-y-2">
-                  {room.beds.map((bed: any, bIndex: number) => (
+                  {room.beds.map((bed: Bed, bIndex: number) => (
                     <div key={bed.id} className="flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded bg-slate-100 text-[10px] font-bold text-slate-500">
                         {String.fromCharCode(65 + bIndex)}
@@ -176,19 +207,8 @@ export function RoomsBedsStep({ data, updateData, onContinue, onBack }: any) {
                         type="text"
                         value={bed.label}
                         onChange={(e) => updateBed(room.id, bed.id, { label: e.target.value })}
-                        className="w-32 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-navy outline-none"
+                        className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-navy outline-none"
                       />
-                      <div className="flex flex-1 items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5">
-                        <span className="text-[10px] font-bold text-slate-400 mr-2">MK</span>
-                        <input
-                          type="number"
-                          value={bed.price}
-                          onChange={(e) => updateBed(room.id, bed.id, { price: e.target.value })}
-                          placeholder="25,000"
-                          className="w-full text-xs text-navy outline-none"
-                        />
-                        <span className="text-[10px] text-slate-400 ml-2">/month</span>
-                      </div>
                       {room.beds.length > 1 && (
                         <button
                           onClick={() => removeBed(room.id, bed.id)}
