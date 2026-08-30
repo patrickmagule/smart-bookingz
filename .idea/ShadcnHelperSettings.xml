@@ -3474,6 +3474,30 @@
         <option name="homepage" value="https://verno-studio.vercel.app/components" />
         <option name="urlTemplate" value="https://verno-studio.vercel.app/r/{name}.json" />
       </RegistryConfigState>
+      <RegistryConfigState>
+        <option name="id" value="central-honestui" />
+        <option name="name" value="Honestui" />
+        <option name="namespace" value="@honestui" />
+        <option name="baseUrl" value="https://www.honestui.com/r" />
+        <option name="stylePath" value="/{name}.json" />
+        <option name="type" value="community" />
+        <option name="enabled" value="false" />
+        <option name="description" value="React UI components, animated interactions, shaders, and charts distributed as editable source." />
+        <option name="homepage" value="https://www.honestui.com" />
+        <option name="urlTemplate" value="https://www.honestui.com/r/{name}.json" />
+      </RegistryConfigState>
+      <RegistryConfigState>
+        <option name="id" value="central-snapcn" />
+        <option name="name" value="Snapcn" />
+        <option name="namespace" value="@snapcn" />
+        <option name="baseUrl" value="https://snapcn.dev/r" />
+        <option name="stylePath" value="/{name}.json" />
+        <option name="type" value="community" />
+        <option name="enabled" value="false" />
+        <option name="description" value="Remotion video components for React. Text reveals, karaoke captions, device mockups, logo stings and full scenes, installed with the CLI and owned as source." />
+        <option name="homepage" value="https://snapcn.dev" />
+        <option name="urlTemplate" value="https://snapcn.dev/r/{name}.json" />
+      </RegistryConfigState>
     </registryConfigs>
   </component>
 </project>

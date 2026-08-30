@@ -5,6 +5,12 @@ import Link from 'next/link';
 import { signInWithEmail } from './actions';
 import { AuthShell } from '@/components/auth/auth-shell';
 import { PasswordField } from '@/components/auth/password-field';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHouse } from '@fortawesome/free-solid-svg-icons';
+import {
+  Search, MapPin, Home, Menu, X, Star, HelpCircle, ChevronDown,
+  Calendar, MessageSquare,
+} from 'lucide-react';
 
 const FEATURES = [
   'Real-time bed availability, no double bookings',

@@ -1,55 +1,40 @@
 import { auth } from '@/lib/auth/server';
-import { redirect } from 'next/navigation';
-import Link from 'next/link';
+import { sql } from '@/lib/db';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBed, faCircleCheck, faCircleDot, faPlus, faMessage, faChartLine } from '@fortawesome/free-solid-svg-icons';
-import { getOwnerUser } from '@/lib/data/owner';
-import {
-  getBedStats,
-  getHostelCount,
-  getPendingBookings,
-  getOccupancyByHostel,
-  getRecentActivity,
-} from'@/lib/data/onwerDashboard';
+import Link from 'next/link';
+import { getBedStats, getHostelCount, getOccupancyByHostel, getPendingBookings, getRecentActivity } from '@/lib/data/onwerDashboard';
 import { BookingRequestActions } from '@/components/owner/bookRequest';
-
-function formatDate(d: string) {
-  return new Date(d).toISOString().slice(0, 10);
-}
-
-function monthsBetween(start: string, end: string | null) {
-  if (!end) return null;
-  const ms = new Date(end).getTime() - new Date(start).getTime();
-  return Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24 * 30)));
-}
-
-function initialsOf(first: string, last: string) {
-  return `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase();
-}
+import { format } from 'date-fns';
 
 export default async function HostelOwnerPage() {
   const { data } = await auth.getSession();
-  if (!data?.user) redirect('/auth/sign-in');
+  const authUser = data?.user;
 
-  const user = await getOwnerUser(data.user.id);
-  if (!user) redirect('/auth/sign-in');
+  const [user] = await sql`SELECT id FROM users WHERE auth_id = ${authUser?.id} LIMIT 1`;
+  const userId = user?.id;
 
-  const [bedStats, hostelCount, pendingBookings, occupancy, recentActivity] = await Promise.all([
-    getBedStats(user.id),
-    getHostelCount(user.id),
-    getPendingBookings(user.id),
-    getOccupancyByHostel(user.id),
-    getRecentActivity(user.id),
+  if (!userId) {
+    return <div>User not found</div>;
+  }
+
+  const [hostelCount, bedStats, pendingBookings, occupancy, recentActivity] = await Promise.all([
+    getHostelCount(userId),
+    getBedStats(userId),
+    getPendingBookings(userId),
+    getOccupancyByHostel(userId),
+    getRecentActivity(userId),
   ]);
 
-  const occupancyPct = bedStats.total_beds > 0
-      ? Math.round((bedStats.occupied_beds / bedStats.total_beds) * 100)
-      : 0;
-
   const stats = [
-    { label: 'Total beds', value: String(bedStats.total_beds), sub: `Across ${hostelCount} hostel${hostelCount === 1 ? '' : 's'}`, icon: faBed },
-    { label: 'Occupied', value: String(bedStats.occupied_beds), sub: `${occupancyPct}% occupancy`, icon: faCircleCheck },
-    { label: 'Available', value: String(bedStats.available_beds), sub: 'Ready to book', icon: faCircleDot },
+    { label: 'Total beds', value: (bedStats.total_beds || 0).toString(), sub: `Across ${hostelCount} hostels`, icon: faBed },
+    {
+      label: 'Occupied',
+      value: (bedStats.occupied_beds || 0).toString(),
+      sub: `${bedStats.total_beds > 0 ? Math.round(((bedStats.occupied_beds || 0) / bedStats.total_beds) * 100) : 0}% occupancy`,
+      icon: faCircleCheck
+    },
+    { label: 'Available', value: (bedStats.available_beds || 0).toString(), sub: 'Ready to book', icon: faCircleDot },
   ];
 
   const quickActions = [
@@ -61,11 +46,13 @@ export default async function HostelOwnerPage() {
 
   return (
       <div className="space-y-6">
+        {/* Welcome Header */}
         <div>
-          <h1 className="font-serif text-2xl text-[#1A1A1E]">Good morning, {user.first_name} 👋</h1>
+          <h1 className="font-serif text-2xl text-[#1A1A1E]">Good morning, {authUser?.name?.split(' ')[0]} 👋</h1>
           <p className="text-sm text-[#6B6B78] mt-0.5">Here&#39;s what&#39;s happening across your properties today.</p>
         </div>
 
+        {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {stats.map((stat) => (
               <div key={stat.label} className="bg-white border border-[#E0D9CF] rounded-sm p-4">
@@ -80,66 +67,68 @@ export default async function HostelOwnerPage() {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-5">
+          {/* Pending Requests */}
           <div className="lg:col-span-2 bg-white border border-[#E0D9CF] rounded-sm overflow-hidden">
             <div className="flex items-center justify-between border-b border-[#E0D9CF] px-5 py-3.5">
               <h2 className="font-serif text-lg text-[#1A1A1E]">Pending booking requests</h2>
               {pendingBookings.length > 0 && (
                   <span className="rounded-sm bg-amber-50 border border-amber-200 px-2.5 py-1 text-[10px] font-bold text-[#C49A2A]">
-                {pendingBookings.length} new
-              </span>
+                  {pendingBookings.length} new
+                </span>
               )}
             </div>
 
-            {pendingBookings.length === 0 ? (
-                <div className="p-8 text-center text-sm text-[#6B6B78]">No pending requests.</div>
-            ) : (
-                <div className="divide-y divide-[#E0D9CF]">
-                  {pendingBookings.map((b) => {
-                    const months = monthsBetween(b.start_date, b.end_date);
-                    return (
-                        <div key={b.id} className="p-5">
-                          <div className="flex items-start gap-3">
-                            <div className="h-10 w-10 rounded-full bg-[#1E3A5F] flex items-center justify-center text-xs font-bold text-white shrink-0">
-                              {initialsOf(b.first_name, b.last_name)}
+            <div className="divide-y divide-[#E0D9CF]">
+              {pendingBookings.length === 0 ? (
+                  <div className="p-10 text-center text-sm text-[#6B6B78]">
+                    No pending booking requests.
+                  </div>
+              ) : (
+                  pendingBookings.map((booking) => (
+                      <div key={booking.id} className="p-5">
+                        <div className="flex items-start gap-3">
+                          <div className="h-10 w-10 rounded-full bg-[#1E3A5F] flex items-center justify-center text-xs font-bold text-white shrink-0">
+                            {booking.first_name[0]}{booking.last_name[0]}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-3">
+                              <h3 className="text-sm font-semibold text-[#1A1A1E]">{booking.first_name} {booking.last_name}</h3>
+                              <BookingRequestActions bookingId={booking.id} />
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-3">
-                                <h3 className="text-sm font-semibold text-[#1A1A1E]">{b.first_name} {b.last_name}</h3>
-                                <BookingRequestActions bookingId={b.id} />
-                              </div>
-                              <p className="text-xs text-[#6B6B78] mt-0.5">
-                                {b.hostel_name}
-                                {b.room_number ? ` · Room ${b.room_number}` : ''}
-                                {b.space_number ? ` · Bed ${b.space_number}` : ''} · MK {Number(b.monthly_price).toLocaleString()}/mo
-                              </p>
-                              <p className="text-xs text-[#6B6B78]">
-                                {formatDate(b.start_date)} → {b.end_date ? formatDate(b.end_date) : 'Open-ended'}
-                                {months ? ` (${months} months)` : ''}
-                              </p>
-                              {b.student_message && (
-                                  <div className="mt-2 rounded-sm bg-amber-50 border border-amber-200 p-3 italic text-xs text-amber-700">
-                                    &#34;{b.student_message}&#34;
-                                  </div>
-                              )}
-                            </div>
+                            <p className="text-xs text-[#6B6B78] mt-0.5">
+                              {booking.hostel_name} · {booking.room_number ?? 'Room N/A'} · {booking.space_number ?? 'Bed N/A'} · MK {Number(booking.monthly_price).toLocaleString()}/mo
+                            </p>
+                            <p className="text-xs text-[#6B6B78]">
+                              {format(new Date(booking.start_date), 'yyyy-MM-dd')} → {booking.end_date ? format(new Date(booking.end_date), 'yyyy-MM-dd') : 'Open'}
+                            </p>
+                            {booking.student_message && (
+                                <div className="mt-2 rounded-sm bg-amber-50 border border-amber-200 p-3 italic text-xs text-amber-700">
+                                  &#34;{booking.student_message}&#34;
+                                </div>
+                            )}
                           </div>
                         </div>
-                    );
-                  })}
-                </div>
-            )}
+                      </div>
+                  ))
+              )}
+            </div>
 
             <Link href="/hostelOwner/bookings" className="block text-center py-3.5 border-t border-[#E0D9CF] text-xs font-medium text-[#1E3A5F] hover:bg-[#F9F8F6] transition-colors">
               View all bookings →
             </Link>
           </div>
 
+          {/* Right column */}
           <div className="space-y-4">
             <div className="bg-white border border-[#E0D9CF] rounded-sm p-4">
               <h3 className="font-semibold text-sm text-[#1A1A1E] mb-3">Quick Actions</h3>
               <div className="space-y-2">
                 {quickActions.map((a) => (
-                    <Link key={a.label} href={a.href} className="w-full flex items-center gap-2.5 rounded-sm border border-[#E0D9CF] px-3 py-2 text-sm text-[#1A1A1E] transition-colors hover:bg-[#F9F8F6]">
+                    <Link
+                        key={a.label}
+                        href={a.href}
+                        className="w-full flex items-center gap-2.5 rounded-sm border border-[#E0D9CF] px-3 py-2 text-sm text-[#1A1A1E] transition-colors hover:bg-[#F9F8F6]"
+                    >
                       <FontAwesomeIcon icon={a.icon} className="h-3.5 w-3.5 text-[#C49A2A]" />
                       <span>{a.label}</span>
                     </Link>
@@ -172,6 +161,7 @@ export default async function HostelOwnerPage() {
           </div>
         </div>
 
+        {/* Recent activity */}
         <div className="bg-white border border-[#E0D9CF] rounded-sm overflow-hidden">
           <div className="px-5 py-3.5 border-b border-[#E0D9CF]">
             <h3 className="font-semibold text-sm text-[#1A1A1E]">Recent Activity</h3>
@@ -181,11 +171,11 @@ export default async function HostelOwnerPage() {
           ) : (
               <div className="divide-y divide-[#E0D9CF]">
                 {recentActivity.map((n) => (
-                    <div key={n.id} className={`px-5 py-3 flex items-start gap-3 ${!n.is_read ? 'bg-blue-50/40' : ''}`}>
-                      <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!n.is_read ? 'bg-[#1E3A5F]' : 'bg-[#E0D9CF]'}`} />
+                    <div key={n.id} className="px-5 py-3 flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full mt-1.5 shrink-0 bg-[#C49A2A]" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-[#1A1A1E]">{n.message}</p>
-                        <p className="text-[10px] text-[#6B6B78] mt-0.5">{formatDate(n.created_at)}</p>
+                        <p className="text-[10px] text-[#6B6B78] mt-0.5">{format(new Date(n.created_at), 'MMM d, HH:mm')}</p>
                       </div>
                     </div>
                 ))}

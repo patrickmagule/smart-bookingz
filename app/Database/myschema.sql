@@ -34,6 +34,7 @@ CREATE TYPE report_status AS ENUM ('OPEN', 'UNDER_REVIEW', 'RESOLVED', 'DISMISSE
 
 CREATE TABLE users (
                        id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                       auth_id        VARCHAR(255) UNIQUE,
                        first_name     VARCHAR(100) NOT NULL,
                        last_name      VARCHAR(100) NOT NULL,
                        email          VARCHAR(255) NOT NULL UNIQUE,
@@ -743,3 +744,22 @@ CREATE TRIGGER trg_validate_report_resolution
 -- ====================================================================
 -- END OF SCHEMA
 -- ====================================================================
+
+
+ALTER TABLE hostels
+    ADD COLUMN distance_from_campus_km DECIMAL(5, 2);
+
+ALTER TABLE hostels
+    ADD CONSTRAINT non_negative_distance
+        CHECK (distance_from_campus_km IS NULL OR distance_from_campus_km >= 0);
+
+ALTER TABLE rooms
+    ADD COLUMN room_type VARCHAR(50);
+
+CREATE TABLE room_amenities (
+                                room_id    UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+                                amenity_id UUID NOT NULL REFERENCES amenities(id) ON DELETE CASCADE,
+                                PRIMARY KEY (room_id, amenity_id)
+);
+
+CREATE INDEX idx_room_amenities_room ON room_amenities(room_id);
