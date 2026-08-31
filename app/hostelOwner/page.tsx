@@ -27,14 +27,27 @@ export default async function HostelOwnerPage() {
   ]);
 
   const stats = [
-    { label: 'Total beds', value: (bedStats.total_beds || 0).toString(), sub: `Across ${hostelCount} hostels`, icon: faBed },
+    {
+      label: 'Total beds',
+      value: (bedStats.total_beds || 0).toString(),
+      sub: `Across ${hostelCount} hostels`,
+      icon: faBed,
+      href: '/hostelOwner/rooms'
+    },
     {
       label: 'Occupied',
       value: (bedStats.occupied_beds || 0).toString(),
       sub: `${bedStats.total_beds > 0 ? Math.round(((bedStats.occupied_beds || 0) / bedStats.total_beds) * 100) : 0}% occupancy`,
-      icon: faCircleCheck
+      icon: faCircleCheck,
+      href: '/hostelOwner/rooms'
     },
-    { label: 'Available', value: (bedStats.available_beds || 0).toString(), sub: 'Ready to book', icon: faCircleDot },
+    {
+      label: 'Available',
+      value: (bedStats.available_beds || 0).toString(),
+      sub: 'Ready to book',
+      icon: faCircleDot,
+      href: '/hostelOwner/rooms'
+    },
   ];
 
   const quickActions = [
@@ -55,14 +68,14 @@ export default async function HostelOwnerPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {stats.map((stat) => (
-              <div key={stat.label} className="bg-white border border-[#E0D9CF] rounded-sm p-4">
+              <Link key={stat.label} href={stat.href} className="bg-white border border-[#E0D9CF] rounded-sm p-4 hover:bg-[#F9F8F6] transition-colors">
                 <div className="flex items-center justify-between mb-2">
                   <FontAwesomeIcon icon={stat.icon} className="h-4 w-4 text-[#6B6B78]" />
                   <span className="text-2xl font-bold text-[#1E3A5F]">{stat.value}</span>
                 </div>
                 <p className="text-xs font-medium text-[#1A1A1E]">{stat.label}</p>
                 <p className="text-[10px] text-[#6B6B78] mt-0.5">{stat.sub}</p>
-              </div>
+              </Link>
           ))}
         </div>
 
@@ -144,16 +157,16 @@ export default async function HostelOwnerPage() {
                   occupancy.map((h) => {
                     const pct = h.total > 0 ? Math.round((h.occupied / h.total) * 100) : 0;
                     return (
-                        <div key={h.id} className="mb-3 last:mb-0">
+                        <Link key={h.id} href="/hostelOwner/rooms" className="block mb-3 last:mb-0 group">
                           <div className="flex justify-between text-xs mb-1">
-                            <span className="text-[#1A1A1E] font-medium">{h.name}</span>
+                            <span className="text-[#1A1A1E] font-medium group-hover:text-[#1E3A5F]">{h.name}</span>
                             <span className="text-[#6B6B78]">{h.occupied}/{h.total} beds</span>
                           </div>
                           <div className="h-2 bg-[#EEE9E0] rounded-full overflow-hidden">
-                            <div className="h-full bg-[#1E3A5F] rounded-full transition-all" style={{ width: `${pct}%` }} />
+                            <div className="h-full bg-[#1E3A5F] rounded-full transition-all group-hover:bg-[#C49A2A]" style={{ width: `${pct}%` }} />
                           </div>
                           <p className="text-[10px] text-[#6B6B78] mt-0.5">{pct}% occupied</p>
-                        </div>
+                        </Link>
                     );
                   })
               )}

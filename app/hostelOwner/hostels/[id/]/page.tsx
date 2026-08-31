@@ -69,10 +69,13 @@ export default async function HostelDetailsPage({
           <section className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-slate-50 flex items-center justify-between">
               <h2 className="text-lg font-bold text-navy">Rooms</h2>
-              <button className="inline-flex items-center gap-2 text-gold text-sm font-bold hover:underline">
+              <Link 
+                href="/hostelOwner/rooms"
+                className="inline-flex items-center gap-2 text-gold text-sm font-bold hover:underline"
+              >
                 <Plus size={16} />
-                Add Room
-              </button>
+                Manage Rooms
+              </Link>
             </div>
             
             {rooms.length === 0 ? (
@@ -92,7 +95,7 @@ export default async function HostelDetailsPage({
                       </div>
                     </div>
                     <Link 
-                      href={`/hostelOwner/hostels/${id}/rooms/${room.id}`}
+                      href="/hostelOwner/rooms"
                       className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-navy hover:border-navy transition-colors"
                     >
                       <Settings size={18} />
@@ -139,9 +142,12 @@ export default async function HostelDetailsPage({
                   : 'Your hostel is live and students can request bookings.'}
               </p>
               {hostel.status === 'DRAFT' && (
-                <button className="w-full mt-4 py-2.5 bg-gold text-navy font-bold rounded-lg hover:bg-gold-light transition">
-                  Publish Hostel
-                </button>
+                <Link 
+                  href={`/hostelOwner/hostels/new/${id}/edit`}
+                  className="w-full mt-4 py-2.5 bg-gold text-navy font-bold rounded-lg hover:bg-gold-light transition inline-block text-center"
+                >
+                  Complete Listing
+                </Link>
               )}
             </div>
           </section>
