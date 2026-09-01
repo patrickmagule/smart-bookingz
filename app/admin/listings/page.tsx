@@ -1,6 +1,5 @@
 // app/admin/listings/page.tsx
 import { sql } from '@/lib/db';
-import { PendingListingActions, RemoveListingButton } from '@/components/admin/listingRowActions';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -43,6 +42,17 @@ type ListingSummary = {
     email: string;
 };
 
+function ViewDetailsButton({ id }: { id: string }) {
+    return (
+        <Link
+            href={`/admin/listings/${id}`}
+            className="inline-block rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 active:bg-slate-100"
+        >
+            View details
+        </Link>
+    );
+}
+
 export default async function AdminListingsPage() {
     const pendingListings = await sql`
         SELECT h.id, h.name, h.address, h.city, h.created_at,
@@ -68,7 +78,9 @@ export default async function AdminListingsPage() {
         <div className="p-4 lg:p-6 space-y-8 max-w-5xl">
             <div>
                 <h1 className="font-serif text-2xl font-bold text-navy">Hostel Listings</h1>
-                <p className="text-sm text-slate-500 mt-0.5">Verify new listings and remove ones that break policy.</p>
+                <p className="text-sm text-slate-500 mt-0.5">
+                    Open a listing to review its details before verifying or removing it.
+                </p>
             </div>
 
             <section>
@@ -86,8 +98,8 @@ export default async function AdminListingsPage() {
                                 key={h.id}
                                 className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
                             >
-                                <div>
-                                    <p className="text-sm font-semibold text-navy"><Link href={`/admin/listings/${h.id}`}>{h.name}</Link></p>
+                                <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-navy truncate">{h.name}</p>
                                     <p className="text-xs text-slate-500">
                                         {h.address}{h.city ? `, ${h.city}` : ''}
                                     </p>
@@ -95,7 +107,7 @@ export default async function AdminListingsPage() {
                                         Owner: {h.first_name} {h.last_name} · {h.email}
                                     </p>
                                 </div>
-                                <PendingListingActions hostelId={h.id} ownerId={h.owner_id} />
+                                <ViewDetailsButton id={h.id} />
                             </div>
                         ))}
                     </div>
@@ -110,9 +122,9 @@ export default async function AdminListingsPage() {
                             key={h.id}
                             className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
                         >
-                            <div>
-                                <p className="text-sm font-medium text-navy"><Link href={`/admin/listings/${h.id}`}>{h.name}</Link></p>
-                                <p className="text-xs text-slate-500">
+                            <div className="min-w-0">
+                                <p className="text-sm font-medium text-navy truncate">{h.name}</p>
+                                <p className="text-xs text-slate-500 truncate">
                                     {h.first_name} {h.last_name} · {h.email} · {h.address}
                                 </p>
                             </div>
@@ -120,14 +132,7 @@ export default async function AdminListingsPage() {
                                 <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusStyle(h.status)}`}>
                                     {h.status.replace('_', ' ')}
                                 </span>
-                                {/* Actions are status-aware: pending listings are verified/rejected,
-                                    published listings can be removed for policy violations. Already
-                                    rejected/suspended listings show status only — nothing further to do. */}
-                                {h.status === 'PENDING_APPROVAL' ? (
-                                    <PendingListingActions hostelId={h.id} ownerId={h.owner_id} />
-                                ) : h.status === 'PUBLISHED' ? (
-                                    <RemoveListingButton hostelId={h.id} ownerId={h.owner_id} hostelName={h.name} />
-                                ) : null}
+                                <ViewDetailsButton id={h.id} />
                             </div>
                         </div>
                     ))}

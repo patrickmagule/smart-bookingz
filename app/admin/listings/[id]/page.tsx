@@ -31,8 +31,14 @@ type HostelRoom = {
     room_number: number;
     description: string | null;
     price_per_month: number;
+    room_type: string | null;
     total_spaces: number;
     occupied_spaces: number;
+};
+
+type Amenity = {
+    id: string;
+    name: string;
 };
 
 export default async function AdminListingDetails({ params }: { params: Promise<{ id: string }> }) {
@@ -66,6 +72,14 @@ export default async function AdminListingDetails({ params }: { params: Promise<
     const images = await sql`
         SELECT id, image_url FROM hostel_images WHERE hostel_id = ${id} ORDER BY display_order
     ` as HostelImage[];
+
+    const amenities = await sql`
+        SELECT a.id, a.name
+        FROM hostel_amenities ha
+                 JOIN amenities a ON a.id = ha.amenity_id
+        WHERE ha.hostel_id = ${id}
+        ORDER BY a.name
+    ` as Amenity[];
 
     return (
         <div className="max-w-4xl p-4 sm:p-6 space-y-6">
@@ -118,8 +132,60 @@ export default async function AdminListingDetails({ params }: { params: Promise<
                 <h2 className="text-sm font-semibold text-[#1A1A1E]">Details</h2>
                 <div className="text-sm text-[#1A1A1E] space-y-1">
                     {hostel.description && (<p className="text-[#6B6B78]">{hostel.description}</p>)}
-                    <p className="text-[#6B6B78]">Created: {new Date(hostel.created_at).toLocaleString()}</p>
                 </div>
+
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm border border-slate-200 rounded-sm p-3 sm:p-4">
+                    <div className="flex justify-between sm:block">
+                        <dt className="text-[#6B6B78]">Distance from MUBAS</dt>
+                        <dd className="text-[#1A1A1E] font-medium">
+                            {hostel.distance_from_campus_km != null ? `${Number(hostel.distance_from_campus_km)} km` : 'Not specified'}
+                        </dd>
+                    </div>
+                    <div className="flex justify-between sm:block">
+                        <dt className="text-[#6B6B78]">Gender preference</dt>
+                        <dd className="text-[#1A1A1E] font-medium">
+                            {hostel.gender_preference || 'Not specified'}
+                        </dd>
+                    </div>
+                    <div className="flex justify-between sm:block">
+                        <dt className="text-[#6B6B78]">Deposit</dt>
+                        <dd className="text-[#1A1A1E] font-medium">
+                            {hostel.deposit_amount != null ? `MK ${Number(hostel.deposit_amount).toLocaleString()}` : 'None'}
+                        </dd>
+                    </div>
+                    <div className="flex justify-between sm:block">
+                        <dt className="text-[#6B6B78]">Contact phone</dt>
+                        <dd className="text-[#1A1A1E] font-medium">
+                            {hostel.contact_phone || 'Not provided'}
+                        </dd>
+                    </div>
+                    {hostel.other_fees && (
+                        <div className="sm:col-span-2 flex justify-between sm:block">
+                            <dt className="text-[#6B6B78]">Other fees</dt>
+                            <dd className="text-[#1A1A1E] font-medium">{hostel.other_fees}</dd>
+                        </div>
+                    )}
+                    <div className="flex justify-between sm:block">
+                        <dt className="text-[#6B6B78]">Created</dt>
+                        <dd className="text-[#1A1A1E] font-medium">{new Date(hostel.created_at).toLocaleString()}</dd>
+                    </div>
+                </dl>
+            </section>
+
+            {/* Amenities */}
+            <section className="space-y-3">
+                <h2 className="text-sm font-semibold text-[#1A1A1E]">Amenities ({amenities.length})</h2>
+                {amenities.length === 0 ? (
+                    <p className="text-sm text-[#6B6B78]">No amenities listed.</p>
+                ) : (
+                    <ul className="flex flex-wrap gap-2">
+                        {amenities.map((a) => (
+                            <li key={a.id} className="text-xs text-[#1A1A1E] border border-slate-200 rounded-sm px-2 py-1">
+                                {a.name}
+                            </li>
+                        ))}
+                    </ul>
+                )}
             </section>
 
             {/* Rooms */}
@@ -132,7 +198,9 @@ export default async function AdminListingDetails({ params }: { params: Promise<
                         {rooms.map((room) => (
                             <div key={room.id} className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                                 <div>
-                                    <p className="text-sm font-medium text-[#1A1A1E]">Room {room.room_number}</p>
+                                    <p className="text-sm font-medium text-[#1A1A1E]">
+                                        Room {room.room_number}{room.room_type ? ` · ${room.room_type}` : ''}
+                                    </p>
                                     <p className="text-xs text-[#6B6B78]">{room.description || 'No description'}</p>
                                 </div>
                                 <div className="text-xs text-[#6B6B78] flex gap-3">
