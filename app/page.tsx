@@ -1,197 +1,32 @@
 import { auth } from '@/lib/auth/server';
+import { sql } from '@/lib/db';
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBed, faCircleCheck, faCircleDot, faPlus, faMessage, faChartLine } from '@fortawesome/free-solid-svg-icons';
-import { getOwnerUser } from '@/lib/data/owner';
-import {
-  getBedStats,
-  getHostelCount,
-  getPendingBookings,
-  getOccupancyByHostel,
-  getRecentActivity,
-} from'@/lib/data/onwerDashboard';
-import { BookingRequestActions } from '@/components/owner/bookRequest';
+import LandingPage from './landiPage';
+import { getFeaturedHostels, getPlatformStats } from '@/lib/data/publicHostelList';
 
-function formatDate(d: string) {
-  return new Date(d).toISOString().slice(0, 10);
-}
+export const dynamic = 'force-dynamic';
 
-function monthsBetween(start: string, end: string | null) {
-  if (!end) return null;
-  const ms = new Date(end).getTime() - new Date(start).getTime();
-  return Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24 * 30)));
-}
-
-function initialsOf(first: string, last: string) {
-  return `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase();
-}
-
-export default async function HostelOwnerPage() {
+export default async function RootPage() {
   const { data } = await auth.getSession();
-  if (!data?.user) redirect('/auth/sign-in');
+  const authUser = data?.user;
 
-  const user = await getOwnerUser(data.user.id);
-  if (!user) redirect('/auth/sign-in');
+  // Logged-in visitors never see the marketing page — bounce them straight
+  // to their dashboard based on role.
+  if (authUser) {
+    const [user] = await sql`SELECT role FROM users WHERE auth_id = ${authUser.id} LIMIT 1`;
 
-  const [bedStats, hostelCount, pendingBookings, occupancy, recentActivity] = await Promise.all([
-    getBedStats(user.id),
-    getHostelCount(user.id),
-    getPendingBookings(user.id),
-    getOccupancyByHostel(user.id),
-    getRecentActivity(user.id),
+    if (user?.role === 'OWNER') redirect('/hostelOwner');
+    if (user?.role === 'ADMIN') redirect('/admin');
+    if (user?.role === 'STUDENT') redirect('/student');
+    // If the session exists but the users row / role is missing (edge case,
+    // e.g. a broken signup), fall through and just show the guest landing
+    // page rather than crashing.
+  }
+
+  const [featured, stats] = await Promise.all([
+    getFeaturedHostels(3),
+    getPlatformStats(),
   ]);
 
-  const occupancyPct = bedStats.total_beds > 0
-      ? Math.round((bedStats.occupied_beds / bedStats.total_beds) * 100)
-      : 0;
-
-  const stats = [
-    { label: 'Total beds', value: String(bedStats.total_beds), sub: `Across ${hostelCount} hostel${hostelCount === 1 ? '' : 's'}`, icon: faBed },
-    { label: 'Occupied', value: String(bedStats.occupied_beds), sub: `${occupancyPct}% occupancy`, icon: faCircleCheck },
-    { label: 'Available', value: String(bedStats.available_beds), sub: 'Ready to book', icon: faCircleDot },
-  ];
-
-  const quickActions = [
-    { label: 'Add New Hostel Listing', href: '/hostelOwner/hostels/new', icon: faPlus },
-    { label: 'Manage Rooms & Beds', href: '/hostelOwner/rooms', icon: faBed },
-    { label: 'Messages', href: '/hostelOwner/messages', icon: faMessage },
-    { label: 'Generate Report', href: '/hostelOwner/reports', icon: faChartLine },
-  ];
-
-  return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="font-serif text-2xl text-[#1A1A1E]">Good morning, {user.first_name} 👋</h1>
-          <p className="text-sm text-[#6B6B78] mt-0.5">Here&#39;s what&#39;s happening across your properties today.</p>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {stats.map((stat) => (
-              <div key={stat.label} className="bg-white border border-[#E0D9CF] rounded-sm p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <FontAwesomeIcon icon={stat.icon} className="h-4 w-4 text-[#6B6B78]" />
-                  <span className="text-2xl font-bold text-[#1E3A5F]">{stat.value}</span>
-                </div>
-                <p className="text-xs font-medium text-[#1A1A1E]">{stat.label}</p>
-                <p className="text-[10px] text-[#6B6B78] mt-0.5">{stat.sub}</p>
-              </div>
-          ))}
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2 bg-white border border-[#E0D9CF] rounded-sm overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[#E0D9CF] px-5 py-3.5">
-              <h2 className="font-serif text-lg text-[#1A1A1E]">Pending booking requests</h2>
-              {pendingBookings.length > 0 && (
-                  <span className="rounded-sm bg-amber-50 border border-amber-200 px-2.5 py-1 text-[10px] font-bold text-[#C49A2A]">
-                {pendingBookings.length} new
-              </span>
-              )}
-            </div>
-
-            {pendingBookings.length === 0 ? (
-                <div className="p-8 text-center text-sm text-[#6B6B78]">No pending requests.</div>
-            ) : (
-                <div className="divide-y divide-[#E0D9CF]">
-                  {pendingBookings.map((b) => {
-                    const months = monthsBetween(b.start_date, b.end_date);
-                    return (
-                        <div key={b.id} className="p-5">
-                          <div className="flex items-start gap-3">
-                            <div className="h-10 w-10 rounded-full bg-[#1E3A5F] flex items-center justify-center text-xs font-bold text-white shrink-0">
-                              {initialsOf(b.first_name, b.last_name)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-3">
-                                <h3 className="text-sm font-semibold text-[#1A1A1E]">{b.first_name} {b.last_name}</h3>
-                                <BookingRequestActions bookingId={b.id} />
-                              </div>
-                              <p className="text-xs text-[#6B6B78] mt-0.5">
-                                {b.hostel_name}
-                                {b.room_number ? ` · Room ${b.room_number}` : ''}
-                                {b.space_number ? ` · Bed ${b.space_number}` : ''} · MK {Number(b.monthly_price).toLocaleString()}/mo
-                              </p>
-                              <p className="text-xs text-[#6B6B78]">
-                                {formatDate(b.start_date)} → {b.end_date ? formatDate(b.end_date) : 'Open-ended'}
-                                {months ? ` (${months} months)` : ''}
-                              </p>
-                              {b.student_message && (
-                                  <div className="mt-2 rounded-sm bg-amber-50 border border-amber-200 p-3 italic text-xs text-amber-700">
-                                    &#34;{b.student_message}&#34;
-                                  </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                    );
-                  })}
-                </div>
-            )}
-
-            <Link href="/hostelOwner/bookings" className="block text-center py-3.5 border-t border-[#E0D9CF] text-xs font-medium text-[#1E3A5F] hover:bg-[#F9F8F6] transition-colors">
-              View all bookings →
-            </Link>
-          </div>
-
-          <div className="space-y-4">
-            <div className="bg-white border border-[#E0D9CF] rounded-sm p-4">
-              <h3 className="font-semibold text-sm text-[#1A1A1E] mb-3">Quick Actions</h3>
-              <div className="space-y-2">
-                {quickActions.map((a) => (
-                    <Link key={a.label} href={a.href} className="w-full flex items-center gap-2.5 rounded-sm border border-[#E0D9CF] px-3 py-2 text-sm text-[#1A1A1E] transition-colors hover:bg-[#F9F8F6]">
-                      <FontAwesomeIcon icon={a.icon} className="h-3.5 w-3.5 text-[#C49A2A]" />
-                      <span>{a.label}</span>
-                    </Link>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white border border-[#E0D9CF] rounded-sm p-4">
-              <h3 className="font-semibold text-sm text-[#1A1A1E] mb-3">Occupancy</h3>
-              {occupancy.length === 0 ? (
-                  <p className="text-xs text-[#6B6B78]">Add a hostel to see occupancy here.</p>
-              ) : (
-                  occupancy.map((h) => {
-                    const pct = h.total > 0 ? Math.round((h.occupied / h.total) * 100) : 0;
-                    return (
-                        <div key={h.id} className="mb-3 last:mb-0">
-                          <div className="flex justify-between text-xs mb-1">
-                            <span className="text-[#1A1A1E] font-medium">{h.name}</span>
-                            <span className="text-[#6B6B78]">{h.occupied}/{h.total} beds</span>
-                          </div>
-                          <div className="h-2 bg-[#EEE9E0] rounded-full overflow-hidden">
-                            <div className="h-full bg-[#1E3A5F] rounded-full transition-all" style={{ width: `${pct}%` }} />
-                          </div>
-                          <p className="text-[10px] text-[#6B6B78] mt-0.5">{pct}% occupied</p>
-                        </div>
-                    );
-                  })
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#E0D9CF] rounded-sm overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-[#E0D9CF]">
-            <h3 className="font-semibold text-sm text-[#1A1A1E]">Recent Activity</h3>
-          </div>
-          {recentActivity.length === 0 ? (
-              <p className="px-5 py-6 text-xs text-[#6B6B78]">No recent activity yet.</p>
-          ) : (
-              <div className="divide-y divide-[#E0D9CF]">
-                {recentActivity.map((n) => (
-                    <div key={n.id} className={`px-5 py-3 flex items-start gap-3 ${!n.is_read ? 'bg-blue-50/40' : ''}`}>
-                      <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!n.is_read ? 'bg-[#1E3A5F]' : 'bg-[#E0D9CF]'}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-[#1A1A1E]">{n.message}</p>
-                        <p className="text-[10px] text-[#6B6B78] mt-0.5">{formatDate(n.created_at)}</p>
-                      </div>
-                    </div>
-                ))}
-              </div>
-          )}
-        </div>
-      </div>
-  );
+  return <LandingPage featured={featured} stats={stats} />;
 }
