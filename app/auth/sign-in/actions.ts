@@ -63,9 +63,21 @@ export async function signInWithEmail(
   }
 
   if (authUser?.id) {
-    const [row] = await sql`SELECT role FROM users WHERE auth_id = ${authUser.id} LIMIT 1`;
+    const [row] = await sql`SELECT id, role FROM users WHERE auth_id = ${authUser.id} LIMIT 1`;
     if (row) {
       if (row.role === 'OWNER') {
+        const [verification] = await sql`
+          SELECT status FROM owner_verifications 
+          WHERE owner_id = ${row.id} 
+          ORDER BY submitted_at DESC 
+          LIMIT 1
+        `;
+
+        if (verification?.status !== 'VERIFIED') {
+          return {
+            error: "You can't access the system. Not verified by an admin. Wait until verified or call customer support.",
+          };
+        }
         redirect('/hostelOwner');
       } else if (row.role === 'ADMIN') {
         redirect('/admin');
