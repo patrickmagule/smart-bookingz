@@ -17,6 +17,8 @@ export async function approveListing(hostelId: string, ownerId: string) {
     `;
     revalidatePath('/admin/listings');
     revalidatePath('/admin');
+    revalidatePath('/hostelOwner/hostels');
+    revalidatePath('/hostelOwner');
 }
 
 export async function rejectListing(hostelId: string, ownerId: string, reason: string) {
@@ -33,6 +35,8 @@ export async function rejectListing(hostelId: string, ownerId: string, reason: s
     `;
     revalidatePath('/admin/listings');
     revalidatePath('/admin');
+    revalidatePath('/hostelOwner/hostels');
+    revalidatePath('/hostelOwner');
 }
 
 // "Remove" for an already-published listing that breaks policy. This sets
@@ -56,4 +60,6 @@ export async function removeListing(hostelId: string, ownerId: string, reason: s
     `;
     revalidatePath('/admin/listings');
     revalidatePath('/admin');
+    revalidatePath('/hostelOwner/hostels');
+    revalidatePath('/hostelOwner');
 }

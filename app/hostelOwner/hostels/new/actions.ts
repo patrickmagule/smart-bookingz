@@ -49,8 +49,8 @@ async function requireOwnerId() {
   if (!data?.user) throw new Error('Not authenticated');
 
   const [user] = await sql`
-        SELECT id, role FROM users WHERE auth_id = ${data.user.id} LIMIT 1
-    `;
+    SELECT id, role FROM users WHERE auth_id = ${data.user.id} LIMIT 1
+  `;
   if (!user) throw new Error('User not found');
   if (user.role !== 'OWNER') throw new Error('Only owners can create listings');
   return user.id as string;
@@ -74,10 +74,10 @@ async function upsertAmenityIds(names: string[]): Promise<string[]> {
     }
 
     const [created] = await sql`
-            INSERT INTO amenities (name) VALUES (${name})
-            ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
-            RETURNING id
-        `;
+      INSERT INTO amenities (name) VALUES (${name})
+        ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+                                RETURNING id
+    `;
     ids.push(created.id as string);
   }
   return ids;
@@ -113,16 +113,16 @@ export async function createHostelListing(input: CreateListingInput) {
 
   // --- hostel row ---
   const [hostel] = await sql`
-        INSERT INTO hostels (
-            owner_id, name, description, address, area, city, contact_phone,
-            distance_from_campus_km, gender_preference, status
-        ) VALUES (
-            ${ownerId}, ${input.hostelName}, ${input.description}, ${input.address},
-            ${input.location}, 'Blantyre', ${input.contactPhone}, ${distanceKm}, ${input.gender},
-            'PENDING_APPROVAL'
-        )
-        RETURNING id
-    `;
+    INSERT INTO hostels (
+      owner_id, name, description, address, area, city, contact_phone,
+      distance_from_campus_km, gender_preference, status
+    ) VALUES (
+               ${ownerId}, ${input.hostelName}, ${input.description}, ${input.address},
+               ${input.location}, 'Blantyre', ${input.contactPhone}, ${distanceKm}, ${input.gender},
+               'PENDING_APPROVAL'
+             )
+      RETURNING id
+  `;
   const hostelId = hostel.id as string;
 
   // --- hostel facilities ---
@@ -130,10 +130,10 @@ export async function createHostelListing(input: CreateListingInput) {
     const facilityIds = await upsertAmenityIds(input.facilities);
     for (const amenityId of facilityIds) {
       await sql`
-                INSERT INTO hostel_amenities (hostel_id, amenity_id)
-                VALUES (${hostelId}, ${amenityId})
-                ON CONFLICT DO NOTHING
-            `;
+        INSERT INTO hostel_amenities (hostel_id, amenity_id)
+        VALUES (${hostelId}, ${amenityId})
+          ON CONFLICT DO NOTHING
+      `;
     }
   }
 
@@ -141,9 +141,9 @@ export async function createHostelListing(input: CreateListingInput) {
   for (let i = 0; i < input.photos.length; i++) {
     const photo = input.photos[i];
     await sql`
-            INSERT INTO hostel_images (hostel_id, image_url, caption, is_primary, display_order)
-            VALUES (${hostelId}, ${photo.url}, ${photo.key}, ${photo.isPrimary}, ${i})
-        `;
+      INSERT INTO hostel_images (hostel_id, image_url, caption, is_primary, display_order)
+      VALUES (${hostelId}, ${photo.url}, ${photo.key}, ${photo.isPrimary}, ${i})
+    `;
   }
 
   // --- rooms + beds ---
@@ -153,35 +153,43 @@ export async function createHostelListing(input: CreateListingInput) {
   // room_spaces -> rooms, so this stays consistent with bookings.
   for (const room of input.rooms) {
     const [createdRoom] = await sql`
-            INSERT INTO rooms (hostel_id, room_number, description, price_per_month, room_type, status)
-            VALUES (
-                ${hostelId}, ${room.name}, ${room.description || null},
-                ${parseFloat(room.price)}, ${room.type}, 'ACTIVE'
-            )
-            RETURNING id
-        `;
+      INSERT INTO rooms (hostel_id, room_number, description, price_per_month, room_type, status)
+      VALUES (
+               ${hostelId}, ${room.name}, ${room.description || null},
+               ${parseFloat(room.price)}, ${room.type}, 'ACTIVE'
+             )
+        RETURNING id
+    `;
     const roomId = createdRoom.id as string;
 
     if (room.amenities.length > 0) {
       const amenityIds = await upsertAmenityIds(room.amenities);
       for (const amenityId of amenityIds) {
         await sql`
-                    INSERT INTO room_amenities (room_id, amenity_id)
-                    VALUES (${roomId}, ${amenityId})
-                    ON CONFLICT DO NOTHING
-                `;
+          INSERT INTO room_amenities (room_id, amenity_id)
+          VALUES (${roomId}, ${amenityId})
+            ON CONFLICT DO NOTHING
+        `;
       }
     }
 
     for (const bed of room.beds) {
       await sql`
-                INSERT INTO room_spaces (room_id, space_number, status)
-                VALUES (${roomId}, ${bed.label}, 'ACTIVE')
-            `;
+        INSERT INTO room_spaces (room_id, space_number, status)
+        VALUES (${roomId}, ${bed.label}, 'ACTIVE')
+      `;
     }
   }
 
   revalidatePath('/hostelOwner');
+  revalidatePath('/hostelOwner/hostels');
+  // Without these, /admin/listings can keep serving a stale render that
+  // predates this submission — the owner's own dashboard would update,
+  // but admins wouldn't see the new listing until something else
+  // happened to bust the cache.
+  revalidatePath('/admin/listings');
+  revalidatePath('/admin');
+  revalidatePath('/');
 
   return { hostelId };
 }

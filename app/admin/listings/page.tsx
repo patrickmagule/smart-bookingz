@@ -1,5 +1,9 @@
+// app/admin/listings/page.tsx
 import { sql } from '@/lib/db';
 import { PendingListingActions, RemoveListingButton } from '@/components/admin/listingRowActions';
+import Link from 'next/link';
+
+export const dynamic = 'force-dynamic';
 
 function statusStyle(status: string) {
     switch (status) {
@@ -15,23 +19,50 @@ function statusStyle(status: string) {
     }
 }
 
+type PendingListing = {
+    id: string;
+    name: string;
+    address: string | null;
+    city: string | null;
+    created_at: string;
+    owner_id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+};
+
+type ListingSummary = {
+    id: string;
+    name: string;
+    address: string | null;
+    city: string | null;
+    status: string;
+    owner_id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+};
+
 export default async function AdminListingsPage() {
     const pendingListings = await sql`
         SELECT h.id, h.name, h.address, h.city, h.created_at,
                u.id AS owner_id, u.first_name, u.last_name, u.email
         FROM hostels h
-        JOIN users u ON u.id = h.owner_id
+                 JOIN users u ON u.id = h.owner_id
         WHERE h.status = 'PENDING_APPROVAL'
         ORDER BY h.created_at ASC
-    `;
+    ` as PendingListing[];
 
+    // Drafts are excluded here — the owner hasn't submitted them for
+    // review yet, so there's nothing for an admin to act on.
     const allListings = await sql`
         SELECT h.id, h.name, h.address, h.city, h.status,
-               u.id AS owner_id, u.first_name, u.last_name
+               u.id AS owner_id, u.first_name, u.last_name, u.email
         FROM hostels h
-        JOIN users u ON u.id = h.owner_id
+                 JOIN users u ON u.id = h.owner_id
+        WHERE h.status != 'DRAFT'
         ORDER BY h.created_at DESC
-    `;
+    ` as ListingSummary[];
 
     return (
         <div className="p-4 lg:p-6 space-y-8 max-w-5xl">
@@ -50,13 +81,13 @@ export default async function AdminListingsPage() {
                     </p>
                 ) : (
                     <div className="divide-y divide-slate-200 rounded-lg border border-slate-200">
-                        {pendingListings.map((h: any) => (
+                        {pendingListings.map((h) => (
                             <div
                                 key={h.id}
                                 className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
                             >
                                 <div>
-                                    <p className="text-sm font-semibold text-navy">{h.name}</p>
+                                    <p className="text-sm font-semibold text-navy"><Link href={`/admin/listings/${h.id}`}>{h.name}</Link></p>
                                     <p className="text-xs text-slate-500">
                                         {h.address}{h.city ? `, ${h.city}` : ''}
                                     </p>
@@ -74,22 +105,29 @@ export default async function AdminListingsPage() {
             <section>
                 <h2 className="text-sm font-semibold text-navy mb-3">All listings ({allListings.length})</h2>
                 <div className="divide-y divide-slate-200 rounded-lg border border-slate-200">
-                    {allListings.map((h: any) => (
+                    {allListings.map((h) => (
                         <div
                             key={h.id}
                             className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
                         >
                             <div>
-                                <p className="text-sm font-medium text-navy">{h.name}</p>
+                                <p className="text-sm font-medium text-navy"><Link href={`/admin/listings/${h.id}`}>{h.name}</Link></p>
                                 <p className="text-xs text-slate-500">
-                                    {h.first_name} {h.last_name} · {h.address}
+                                    {h.first_name} {h.last_name} · {h.email} · {h.address}
                                 </p>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
                                 <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusStyle(h.status)}`}>
                                     {h.status.replace('_', ' ')}
                                 </span>
-                                <RemoveListingButton hostelId={h.id} ownerId={h.owner_id} hostelName={h.name} />
+                                {/* Actions are status-aware: pending listings are verified/rejected,
+                                    published listings can be removed for policy violations. Already
+                                    rejected/suspended listings show status only — nothing further to do. */}
+                                {h.status === 'PENDING_APPROVAL' ? (
+                                    <PendingListingActions hostelId={h.id} ownerId={h.owner_id} />
+                                ) : h.status === 'PUBLISHED' ? (
+                                    <RemoveListingButton hostelId={h.id} ownerId={h.owner_id} hostelName={h.name} />
+                                ) : null}
                             </div>
                         </div>
                     ))}
