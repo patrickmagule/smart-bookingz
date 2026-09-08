@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ export default function RootLayout({
         <html lang="en" className={cn(fraunces.variable, inter.variable)}>
         <body className="font-sans bg-[#F9F8F6] text-[#1A1A1E] antialiased">
         {children}
+        <Script src="https://in.paychangu.com/js/popup.js" strategy="afterInteractive" />
         </body>
         </html>
     );

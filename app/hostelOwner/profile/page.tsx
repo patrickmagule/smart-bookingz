@@ -3,6 +3,8 @@ import { sql } from '@/lib/db';
 import { ProfileView } from './profile-view';
 import type { UserData, VerificationData } from './types';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ProfilePage() {
   const { data } = await auth.getSession();
   const authUser = data?.user;

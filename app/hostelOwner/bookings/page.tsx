@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 export default async function BookingsPage() {
   const { data } = await auth.getSession();
   const authUser = data?.user;

@@ -9,9 +9,13 @@ export default auth.middleware({
 
 export const config = {
     matcher: [
-        // Add every route that requires a signed-in user.
-        '/dashboard/:path*',
-        '/account/:path*',
-        '/owner/:path*',
+        /*
+         * Match all request paths except for the ones starting with:
+         * - api (API routes)
+         * - _next/static (static files)
+         * - _next/image (image optimization files)
+         * - favicon.ico (favicon file)
+         */
+        '/((?!api|_next/static|_next/image|favicon.ico).*)',
     ],
 };

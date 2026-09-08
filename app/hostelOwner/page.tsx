@@ -7,6 +7,8 @@ import { getBedStats, getHostelCount, getOccupancyByHostel, getPendingBookings, 
 import { BookingRequestActions } from '@/components/owner/bookRequest';
 import { format } from 'date-fns';
 
+export const dynamic = 'force-dynamic';
+
 export default async function HostelOwnerPage() {
   const { data } = await auth.getSession();
   const authUser = data?.user;
