@@ -1,4 +1,4 @@
-// lib/subscriptions/plans.ts
+// lib/subscriptions/plan.ts
 export type SubscriptionPlan = 'DAILY' | 'WEEKLY' | 'MONTHLY';
 
 // TODO: adjust these — placeholders until you set real pricing

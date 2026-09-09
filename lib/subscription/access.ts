@@ -15,7 +15,7 @@ export async function getActiveSubscription(studentId: string): Promise<ActiveSu
           AND status = 'ACTIVE'
           AND expires_at > now()
         ORDER BY expires_at DESC
-        LIMIT 1
+            LIMIT 1
     `;
     return (row as unknown as ActiveSubscription) ?? null;
 }

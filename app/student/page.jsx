@@ -78,7 +78,7 @@ export default async function StudentHomePage() {
             </div>
 
             <div className="grid lg:grid-cols-3 gap-5">
-                {/* Active booking */}
+                {/* Active bookings */}
                 <div className="lg:col-span-2 bg-white border border-[#E0D9CF] rounded-sm overflow-hidden">
                     <div className="border-b border-[#E0D9CF] px-5 py-3.5">
                         <h2 className="font-serif text-lg text-[#1A1A1E]">Your booking</h2>

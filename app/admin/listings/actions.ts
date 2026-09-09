@@ -42,8 +42,8 @@ export async function rejectListing(hostelId: string, ownerId: string, reason: s
 // "Remove" for an already-published listing that breaks policy. This sets
 // status to REJECTED rather than issuing a hard DELETE: bookings.space_id
 // references room_spaces with ON DELETE RESTRICT, so any hostel that has
-// ever had a booking cannot be hard-deleted — Postgres will block it to
-// protect booking/payment history. Setting status = REJECTED hides it from
+// ever had a bookings cannot be hard-deleted — Postgres will block it to
+// protect bookings/payment history. Setting status = REJECTED hides it from
 // search immediately without that risk, and keeps the record for appeals
 // or audits.
 export async function removeListing(hostelId: string, ownerId: string, reason: string) {

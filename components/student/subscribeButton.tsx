@@ -32,10 +32,6 @@ interface SubscribeButtonProps {
     customer: { email: string; firstName: string; lastName: string };
 }
 
-interface SubscribeButtonProps {
-    customer: { email: string; firstName: string; lastName: string };
-}
-
 export default function SubscribeButton({ customer }: SubscribeButtonProps) {
     const [selected, setSelected] = useState<SubscriptionPlan>('WEEKLY');
     const [loading, setLoading] = useState(false);
@@ -75,7 +71,7 @@ export default function SubscribeButton({ customer }: SubscribeButtonProps) {
                 },
                 customization: {
                     title: `HostelFind ${PLAN_CONFIG[selected].label}`,
-                    description: 'Unlock hostel details, booking, and messaging',
+                    description: 'Unlock hostel details, bookings, and messaging',
                 },
                 meta: { type: 'subscription', plan: selected },
             });
@@ -113,6 +109,9 @@ export default function SubscribeButton({ customer }: SubscribeButtonProps) {
             >
                 {loading ? 'Loading…' : `Subscribe — K${PLAN_CONFIG[selected].amount.toLocaleString()}`}
             </button>
+
+            {/* Required by PayChangu's popup.js — it injects the checkout iframe into this node */}
+            <div id="wrapper"></div>
         </div>
     );
 }

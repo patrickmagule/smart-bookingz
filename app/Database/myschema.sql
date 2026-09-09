@@ -563,7 +563,7 @@ CREATE TRIGGER trg_messages_require_participant
     FOR EACH ROW
     EXECUTE FUNCTION enforce_conversation_participant();
 
--- 6. Reviews only after completed booking
+-- 6. Reviews only after completed bookings
 CREATE OR REPLACE FUNCTION enforce_review_after_completed_booking()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -579,12 +579,12 @@ FROM bookings b
 WHERE b.id = NEW.booking_id;
 
 IF booking_status_value IS DISTINCT FROM 'COMPLETED' THEN
-        RAISE EXCEPTION 'Reviews can only be submitted for completed bookings (booking % is %)',
+        RAISE EXCEPTION 'Reviews can only be submitted for completed bookings (bookings % is %)',
             NEW.booking_id, booking_status_value;
 END IF;
 
     IF NEW.hostel_id IS DISTINCT FROM booking_hostel_id THEN
-        RAISE EXCEPTION 'Review hostel does not match the hostel associated with booking %', NEW.booking_id;
+        RAISE EXCEPTION 'Review hostel does not match the hostel associated with bookings %', NEW.booking_id;
 END IF;
 
 RETURN NEW;
@@ -617,7 +617,7 @@ CREATE TRIGGER trg_hostel_requires_owner_role
     FOR EACH ROW
     EXECUTE FUNCTION enforce_hostel_owner();
 
--- 8. Verify booking student has STUDENT role
+-- 8. Verify bookings student has STUDENT role
 CREATE OR REPLACE FUNCTION enforce_booking_student()
 RETURNS TRIGGER AS $$
 DECLARE

@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const signature = req.headers.get('x-paychangu-signature'); // confirm exact header in PayChangu's webhook docs
 
     const expected = crypto
-        .createHmac('sha256', process.env.PAYCHANGU_SECRET_KEY!)
+        .createHmac('sha256', process.env.PAYCHANGU_WEBHOOK_SECRET!)
         .update(rawBody)
         .digest('hex');
 

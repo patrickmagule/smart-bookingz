@@ -31,7 +31,7 @@ export default async function FindHostelsPage() {
             </div>
 
             <div className="flex gap-2 overflow-x-auto pb-4">
-                {['All', 'Near MUBAS', 'Self-Contained', 'Mixed', 'Female Only', 'Male Only', 'Under K30,000'].map((filter) => (
+                {['All', 'Near MUBAS', 'Self-Contained', 'Mixed', 'Female Only', 'Male Only', 'Under K30,000'].map((filter: string) => (
                     <button
                         key={filter}
                         className={`whitespace-nowrap px-4 py-1.5 rounded-sm text-xs font-medium transition-colors border ${
@@ -47,7 +47,7 @@ export default async function FindHostelsPage() {
                 <div className="py-16 text-center text-sm text-[#6B6B78]">No published hostels yet.</div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                    {hostels.map((h) => (
+                    {hostels.map((h: HostelListRow) => (
                         <div key={h.id} className="bg-white border border-[#E0D9CF] rounded-sm overflow-hidden">
                             <div className="h-40 bg-[#EEE9E0] relative">
                                 {h.image_url && (

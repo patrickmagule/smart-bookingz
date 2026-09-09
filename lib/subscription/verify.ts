@@ -37,7 +37,7 @@ export async function verifyAndActivateSubscription(txRef: string): Promise<Veri
             UPDATE subscriptions
             SET status = 'ACTIVE', starts_at = now(), expires_at = now() + (${days} * interval '1 day')
             WHERE tx_ref = ${txRef}
-            RETURNING plan, expires_at
+                RETURNING plan, expires_at
         `;
         return { status: 'ACTIVE', plan: updated.plan, expiresAt: updated.expires_at };
     }

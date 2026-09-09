@@ -15,7 +15,7 @@ async function getCurrentStudentId(): Promise<string> {
 
 export async function replyToConversation(conversationId: string, message: string) {
     const studentId = await getCurrentStudentId();
-    // Consistent with messageOwner: an active subscription is required to
+    // Consistent with messageOwner: an active subscriptions is required to
     // send any message, not just to start the conversation.
     await requireActiveSubscription(studentId);
 

@@ -83,7 +83,7 @@ const FEATURES = [
             </svg>
         ),
         title: 'In-App Messaging',
-        desc: 'Communicate directly with hostel owners before and after booking. Secure and logged.',
+        desc: 'Communicate directly with hostel owners before and after bookings. Secure and logged.',
     },
     {
         icon: (
@@ -359,7 +359,7 @@ export default function LandingPage({ featured, stats }: LandingPageProps) {
                             { step: '01', title: 'Register', desc: 'Create a student account with your MUBAS student ID.' },
                             { step: '02', title: 'Search', desc: 'Filter hostels by location, price, gender policy, and bed availability.' },
                             { step: '03', title: 'Choose a Bed', desc: 'Select the exact bed you want in a room with other students if desired.' },
-                            { step: '04', title: 'Book & Pay', desc: 'Submit your booking request, pay securely, and receive confirmation.' },
+                            { step: '04', title: 'Book & Pay', desc: 'Submit your bookings request, pay securely, and receive confirmation.' },
                         ].map(item => (
                             <div key={item.step} className="text-center">
                                 <div className="w-11 h-11 sm:w-12 sm:h-12 bg-navy text-white font-serif text-lg flex items-center justify-center mx-auto mb-4 rounded-sm">
