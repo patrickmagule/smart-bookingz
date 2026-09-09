@@ -1,47 +1,32 @@
 // app/student/hostels/page.tsx
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMagnifyingGlass, faFilter, faLocationDot, faHeart } from '@fortawesome/free-solid-svg-icons';
+import { faLocationDot, faHeart } from '@fortawesome/free-solid-svg-icons';
 import { getPublishedHostels, type HostelListRow } from '@/lib/data/studentDashboard';
+import HostelFilters from '@/components/student/hostelFilters';
+import { Suspense } from 'react';
 
 export const dynamic = 'force-dynamic';
 
-export default async function FindHostelsPage() {
-    const hostels: HostelListRow[] = await getPublishedHostels();
+export default async function FindHostelsPage({
+                                                 searchParams,
+                                             }: {
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+    const params = await searchParams;
+
+    const hostels: HostelListRow[] = await getPublishedHostels({
+        search: params.search as string,
+        type: params.type as string,
+        gender: params.gender as string,
+        distance: params.distance ? parseFloat(params.distance as string) : undefined,
+        maxPrice: params.maxPrice ? parseFloat(params.maxPrice as string) : undefined,
+    });
 
     return (
         <div>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                <div>
-                    <h1 className="font-serif text-2xl text-[#1A1A1E]">Find your next home</h1>
-                    <p className="text-sm text-[#6B6B78] mt-0.5">Discover verified hostels near MUBAS campus</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="relative flex-1 md:w-80">
-                        <FontAwesomeIcon icon={faMagnifyingGlass} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B6B78] h-3.5 w-3.5" />
-                        <input
-                            type="text"
-                            placeholder="Search area, hostel name..."
-                            className="w-full bg-white border border-[#E0D9CF] rounded-sm py-2 pl-9 pr-3 text-sm outline-none focus:border-[#1E3A5F]"
-                        />
-                    </div>
-                    <button className="border border-[#E0D9CF] p-2 rounded-sm text-[#1E3A5F] hover:bg-[#F9F8F6] transition-colors">
-                        <FontAwesomeIcon icon={faFilter} className="h-4 w-4" />
-                    </button>
-                </div>
-            </div>
-
-            <div className="flex gap-2 overflow-x-auto pb-4">
-                {['All', 'Near MUBAS', 'Self-Contained', 'Mixed', 'Female Only', 'Male Only', 'Under K30,000'].map((filter: string) => (
-                    <button
-                        key={filter}
-                        className={`whitespace-nowrap px-4 py-1.5 rounded-sm text-xs font-medium transition-colors border ${
-                            filter === 'All' ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]' : 'bg-white text-[#6B6B78] border-[#E0D9CF] hover:border-[#1E3A5F]'
-                        }`}
-                    >
-                        {filter}
-                    </button>
-                ))}
-            </div>
+            <Suspense fallback={<div className="h-20 animate-pulse bg-gray-100 rounded-sm mb-6" />}>
+                <HostelFilters />
+            </Suspense>
 
             {hostels.length === 0 ? (
                 <div className="py-16 text-center text-sm text-[#6B6B78]">No published hostels yet.</div>

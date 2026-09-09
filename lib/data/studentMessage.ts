@@ -33,8 +33,8 @@ export async function getStudentConversations(studentId: string): Promise<Conver
                (SELECT m.created_at FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC LIMIT 1) AS last_message_at,
                (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id AND m.sender_id != ${studentId} AND m.is_read = FALSE) AS unread_count
         FROM conversations c
-        JOIN hostels h ON h.id = c.hostel_id
-        JOIN users u ON u.id = c.owner_id
+            JOIN hostels h ON h.id = c.hostel_id
+            JOIN users u ON u.id = c.owner_id
         WHERE c.student_id = ${studentId}
         ORDER BY last_message_at DESC NULLS LAST, c.created_at DESC
     `) as ConversationSummaryRow[];
@@ -61,10 +61,10 @@ export async function getConversationForStudent(
         SELECT c.id, c.hostel_id, h.name AS hostel_name,
                c.owner_id, u.first_name AS owner_first_name, u.last_name AS owner_last_name
         FROM conversations c
-        JOIN hostels h ON h.id = c.hostel_id
-        JOIN users u ON u.id = c.owner_id
+                 JOIN hostels h ON h.id = c.hostel_id
+                 JOIN users u ON u.id = c.owner_id
         WHERE c.id = ${conversationId} AND c.student_id = ${studentId}
-        LIMIT 1
+            LIMIT 1
     `) as ConversationDetail[];
 
     return rows[0] ?? null;
@@ -74,12 +74,13 @@ export interface MessageRow {
     id: string;
     sender_id: string;
     message: string;
+    is_read: boolean;
     created_at: string;
 }
 
 export async function getConversationMessages(conversationId: string): Promise<MessageRow[]> {
     return (await sql`
-        SELECT id, sender_id, message, created_at
+        SELECT id, sender_id, message, is_read, created_at
         FROM messages
         WHERE conversation_id = ${conversationId}
         ORDER BY created_at ASC
@@ -92,4 +93,31 @@ export async function markMessagesRead(conversationId: string, studentId: string
         SET is_read = TRUE
         WHERE conversation_id = ${conversationId} AND sender_id != ${studentId} AND is_read = FALSE
     `;
+}
+
+// lib/data/studentMessage.ts — add this export
+export interface ClientMessage {
+    id: string;
+    isMine: boolean;
+    locked: boolean;
+    message: string | null;
+    created_at: string;
+}
+
+export function toClientMessages(
+    messages: MessageRow[],
+    userId: string,
+    hasActiveSub: boolean
+): ClientMessage[] {
+    return messages.map((m) => {
+        const isMine = m.sender_id === userId;
+        const locked = !isMine && !m.is_read && !hasActiveSub;
+        return {
+            id: m.id,
+            isMine,
+            locked,
+            message: locked ? null : m.message,
+            created_at: m.created_at,
+        };
+    });
 }

@@ -98,7 +98,66 @@ export async function getStudentRecentActivity(studentId: string, limit = 5): Pr
     return rows as unknown as ActivityRow[];
 }
 
-export async function getPublishedHostels(): Promise<HostelListRow[]> {
+export interface HostelFilters {
+    search?: string;
+    type?: string;
+    distance?: number;
+    maxPrice?: number;
+    gender?: string;
+}
+
+export async function getPublishedHostels(filters: HostelFilters = {}): Promise<HostelListRow[]> {
+    const { search, type, distance, maxPrice, gender } = filters;
+
+    let whereClause = sql`WHERE h.status = 'PUBLISHED'`;
+
+    if (search) {
+        whereClause = sql`${whereClause} AND (h.name ILIKE ${'%' + search + '%'} OR h.area ILIKE ${'%' + search + '%'})`;
+    }
+
+    if (type && type !== 'All') {
+        if (type === 'Female Only') {
+            whereClause = sql`${whereClause} AND h.gender_preference = 'FEMALE'`;
+        } else if (type === 'Male Only') {
+            whereClause = sql`${whereClause} AND h.gender_preference = 'MALE'`;
+        } else if (type === 'Mixed') {
+            whereClause = sql`${whereClause} AND h.gender_preference = 'MIXED'`;
+        } else if (type === 'Near MUBAS') {
+            whereClause = sql`${whereClause} AND h.distance_from_campus_km <= 1`;
+        } else if (type === 'Self-Contained') {
+             // Assuming self-contained is an amenity
+             whereClause = sql`${whereClause} AND EXISTS (
+                SELECT 1 FROM hostel_amenities ha 
+                JOIN amenities a ON ha.amenity_id = a.id 
+                WHERE ha.hostel_id = h.id AND a.name ILIKE '%self-contained%'
+             )`;
+        } else if (type === 'Under K30,000') {
+            whereClause = sql`${whereClause} AND EXISTS (
+                SELECT 1 FROM rooms r WHERE r.hostel_id = h.id AND r.price_per_month < 30000 AND r.status = 'ACTIVE'
+            )`;
+        }
+    }
+
+    if (distance != null) {
+        whereClause = sql`${whereClause} AND h.distance_from_campus_km <= ${distance}`;
+    }
+
+    if (maxPrice != null) {
+        whereClause = sql`${whereClause} AND EXISTS (
+            SELECT 1 FROM rooms r WHERE r.hostel_id = h.id AND r.price_per_month <= ${maxPrice} AND r.status = 'ACTIVE'
+        )`;
+    }
+
+    if (gender && gender !== 'All') {
+        if (gender === 'Male') {
+            whereClause = sql`${whereClause} AND h.gender_preference = 'MALE'`;
+        } else if (gender === 'Female') {
+            whereClause = sql`${whereClause} AND h.gender_preference = 'FEMALE'`;
+        } else if (gender === 'Both') {
+            whereClause = sql`${whereClause} AND h.gender_preference = 'MIXED'`;
+        }
+    }
+
     const rows = await sql`
         SELECT
             h.id,
@@ -115,7 +174,7 @@ export async function getPublishedHostels(): Promise<HostelListRow[]> {
             ) as amenities,
             (SELECT MIN(price_per_month)::float FROM rooms WHERE hostel_id = h.id AND status = 'ACTIVE') as min_price
         FROM hostels h
-        WHERE h.status = 'PUBLISHED'
+        ${whereClause}
         ORDER BY h.created_at DESC
     `;
     return rows as unknown as HostelListRow[];

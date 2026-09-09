@@ -1,13 +1,12 @@
+// lib/action/ownerConversation.ts
 'use server';
 
 import { auth } from '@/lib/auth/server';
 import { sql } from '@/lib/db';
-import { requireActiveSubscription } from '@/lib/subscription/access';
 import { revalidatePath } from 'next/cache';
-
 import { pusherServer } from '@/lib/pusher/server';
 
-async function getCurrentStudentId(): Promise<string> {
+async function getCurrentOwnerId(): Promise<string> {
     const { data } = await auth.getSession();
     if (!data?.user) throw new Error('NOT_AUTHENTICATED');
     const [user] = await sql`SELECT id FROM users WHERE auth_id = ${data.user.id} LIMIT 1`;
@@ -15,28 +14,25 @@ async function getCurrentStudentId(): Promise<string> {
     return user.id as string;
 }
 
-export async function replyToConversation(conversationId: string, message: string) {
-    const studentId = await getCurrentStudentId();
-    // Consistent with messageOwner: an active subscriptions is required to
-    // send any message, not just to start the conversation.
-    await requireActiveSubscription(studentId);
+export async function ownerReplyToConversation(conversationId: string, message: string) {
+    const ownerId = await getCurrentOwnerId();
 
     const trimmed = message.trim();
     if (!trimmed) return { error: 'Message cannot be empty.' };
 
     const [conversation] = await sql`
-        SELECT id FROM conversations WHERE id = ${conversationId} AND student_id = ${studentId} LIMIT 1
+        SELECT id FROM conversations WHERE id = ${conversationId} AND owner_id = ${ownerId} LIMIT 1
     `;
     if (!conversation) return { error: 'Conversation not found.' };
 
     await sql`
         INSERT INTO messages (conversation_id, sender_id, message)
-        VALUES (${conversationId}, ${studentId}, ${trimmed})
+        VALUES (${conversationId}, ${ownerId}, ${trimmed})
     `;
 
     await pusherServer.trigger(`private-conversation-${conversationId}`, 'new-message', {});
 
-    revalidatePath(`/student/messages/${conversationId}`);
-    revalidatePath('/student/messages');
+    revalidatePath(`/hostelOwner/messages/${conversationId}`);
+    revalidatePath('/hostelOwner/messages');
     return { success: true };
 }

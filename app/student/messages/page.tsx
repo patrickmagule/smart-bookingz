@@ -1,9 +1,12 @@
 // app/student/messages/page.tsx
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faLock } from '@fortawesome/free-solid-svg-icons';
 import { auth } from '@/lib/auth/server';
 import { sql } from '@/lib/db';
 import { getStudentConversations } from '@/lib/data/studentMessage';
+import { getActiveSubscription } from '@/lib/subscription/access';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +15,11 @@ export default async function StudentMessagesPage() {
     const [user] = await sql`SELECT id FROM users WHERE auth_id = ${data?.user?.id} LIMIT 1`;
     if (!user) return <div>User not found</div>;
 
-    const conversations = await getStudentConversations(user.id);
+    const [conversations, active] = await Promise.all([
+        getStudentConversations(user.id),
+        getActiveSubscription(user.id),
+    ]);
+    const hasActiveSub = !!active;
 
     return (
         <div className="max-w-2xl space-y-4">
@@ -27,35 +34,54 @@ export default async function StudentMessagesPage() {
                 </div>
             ) : (
                 <div className="divide-y divide-[#E0D9CF] border border-[#E0D9CF] rounded-sm bg-white">
-                    {conversations.map((c) => (
-                        <Link
-                            key={c.id}
-                            href={`/student/messages/${c.id}`}
-                            className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-[#F9F8F6] transition-colors"
-                        >
-                            <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                    <p className="text-sm font-semibold text-[#1A1A1E] truncate">
-                                        {c.owner_first_name} {c.owner_last_name}
-                                    </p>
-                                    {c.unread_count > 0 && (
-                                        <span className="bg-[#1E3A5F] text-white text-[10px] font-medium rounded-full px-1.5 py-0.5">
-                                            {c.unread_count}
-                                        </span>
+                    {conversations.map((c) => {
+                        // Any unread message in a conversation is (by construction)
+                        // one the student didn't send, so if they're not
+                        // subscribed, don't leak its content in the preview.
+                        const locked = !hasActiveSub && c.unread_count > 0;
+
+                        return (
+                            <Link
+                                key={c.id}
+                                href={`/student/messages/${c.id}`}
+                                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-[#F9F8F6] transition-colors"
+                            >
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-sm font-semibold text-[#1A1A1E] truncate">
+                                            {c.owner_first_name} {c.owner_last_name}
+                                        </p>
+                                        {c.unread_count > 0 && (
+                                            <span className="bg-[#1E3A5F] text-white text-[10px] font-medium rounded-full px-1.5 py-0.5 shrink-0">
+                                                {c.unread_count}
+                                            </span>
+                                        )}
+                                        {locked && (
+                                            <FontAwesomeIcon icon={faLock} className="h-2.5 w-2.5 text-[#6B6B78] shrink-0" />
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-[#6B6B78] truncate">{c.hostel_name}</p>
+                                    {c.last_message && (
+                                        // Note: when locked, we swap in a fixed placeholder
+                                        // rather than blurring c.last_message itself — the
+                                        // real text should never reach the client markup.
+                                        <p
+                                            className={`text-xs truncate mt-0.5 ${
+                                                locked ? 'text-[#6B6B78] blur-[3px] select-none' : 'text-[#6B6B78]'
+                                            }`}
+                                        >
+                                            {locked ? 'New message — subscribe to view' : c.last_message}
+                                        </p>
                                     )}
                                 </div>
-                                <p className="text-xs text-[#6B6B78] truncate">{c.hostel_name}</p>
-                                {c.last_message && (
-                                    <p className="text-xs text-[#6B6B78] truncate mt-0.5">{c.last_message}</p>
+                                {c.last_message_at && (
+                                    <span className="text-[10px] text-[#6B6B78] shrink-0">
+                                        {format(new Date(c.last_message_at), 'MMM d')}
+                                    </span>
                                 )}
-                            </div>
-                            {c.last_message_at && (
-                                <span className="text-[10px] text-[#6B6B78] shrink-0">
-                                    {format(new Date(c.last_message_at), 'MMM d')}
-                                </span>
-                            )}
-                        </Link>
-                    ))}
+                            </Link>
+                        );
+                    })}
                 </div>
             )}
         </div>

@@ -68,8 +68,12 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
         WHERE h.owner_id = ${user.id} AND b.status = 'PENDING'
     `;
 
-    // TODO: wire these up to real notifications table (unread messages table doesn't exist yet — messages.is_read + conversations.owner_id)
-    const unreadMsgs = 0;
+    const [{ count: unreadMsgs }] = await sql`
+        SELECT COUNT(*) FROM messages m
+        JOIN conversations c ON m.conversation_id = c.id
+        WHERE c.owner_id = ${user.id} AND m.sender_id != ${user.id} AND m.is_read = FALSE
+    `;
+
     const unreadNotifs = 0;
 
     return (
@@ -77,7 +81,7 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
             user={data.user}
             ownerVerified={ownerVerified}
             pendingCount={Number(pendingCount)}
-            unreadMsgs={unreadMsgs}
+            unreadMsgs={Number(unreadMsgs)}
             unreadNotifs={unreadNotifs}
         >
             {children}

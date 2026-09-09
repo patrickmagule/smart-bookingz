@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth/server';
 import { sql } from '@/lib/db';
 import { requireActiveSubscription } from '@/lib/subscription/access';
 import { revalidatePath } from 'next/cache';
+import { pusherServer } from '@/lib/pusher/server';
 
 async function getCurrentStudentId(): Promise<string> {
     const { data } = await auth.getSession();
@@ -92,6 +93,8 @@ export async function messageOwner(hostelId: string, ownerId: string, message: s
         INSERT INTO messages (conversation_id, sender_id, message)
         VALUES (${conversation.id}, ${studentId}, ${trimmed})
     `;
+
+    await pusherServer.trigger(`private-conversation-${conversation.id}`, 'new-message', {});
 
     revalidatePath('/student/messages');
     return { success: true, conversationId: conversation.id };
