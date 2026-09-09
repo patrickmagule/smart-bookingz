@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth/server';
 import { sql } from '@/lib/db';
 import { redirect } from 'next/navigation';
-import LandingPage from './landiPage';
+import LandingPage from './landingPage';
 import { getFeaturedHostels, getPlatformStats } from '@/lib/data/publicHostelList';
 
 export const dynamic = 'force-dynamic';

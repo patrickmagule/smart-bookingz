@@ -763,3 +763,47 @@ CREATE TABLE room_amenities (
 );
 
 CREATE INDEX idx_room_amenities_room ON room_amenities(room_id);
+
+
+CREATE TYPE subscription_plan AS ENUM ('DAILY', 'WEEKLY', 'MONTHLY');
+CREATE TYPE subscription_status AS ENUM ('PENDING', 'ACTIVE', 'EXPIRED', 'FAILED', 'CANCELLED');
+
+CREATE TABLE subscriptions (
+                               id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                               student_id  UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                               plan        subscription_plan NOT NULL,
+                               amount      DECIMAL(12, 2) NOT NULL,
+                               currency    VARCHAR(10) NOT NULL DEFAULT 'MWK',
+                               status      subscription_status NOT NULL DEFAULT 'PENDING',
+                               tx_ref      VARCHAR(255) UNIQUE,
+                               starts_at   TIMESTAMPTZ,
+                               expires_at  TIMESTAMPTZ,
+                               created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_subscriptions_student ON subscriptions(student_id);
+CREATE INDEX idx_subscriptions_status ON subscriptions(status);
+CREATE INDEX idx_subscriptions_student_active ON subscriptions(student_id, status, expires_at);
+
+ALTER TABLE subscriptions
+    ADD CONSTRAINT positive_subscription_amount CHECK (amount > 0),
+    ADD CONSTRAINT valid_subscription_dates CHECK (expires_at IS NULL OR starts_at IS NULL OR expires_at > starts_at);
+
+-- Same role-guard pattern as your other tables (enforce_booking_student, enforce_hostel_owner)
+CREATE OR REPLACE FUNCTION enforce_subscription_student()
+RETURNS TRIGGER AS $$
+DECLARE
+student_role_value user_role;
+BEGIN
+SELECT role INTO student_role_value FROM users WHERE id = NEW.student_id;
+IF student_role_value IS DISTINCT FROM 'STUDENT' THEN
+        RAISE EXCEPTION 'Subscription student % must have the STUDENT role', NEW.student_id;
+END IF;
+RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_subscription_requires_student_role
+    BEFORE INSERT OR UPDATE OF student_id ON subscriptions
+    FOR EACH ROW
+    EXECUTE FUNCTION enforce_subscription_student();

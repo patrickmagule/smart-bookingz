@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { sql } from '@/lib/db';
 
-export type AppRole = 'STUDENT' | 'OWNER';
+export type AppRole = 'STUDENT' | 'OWNER' | 'ADMIN';
 
 /**
  * Creates the app-side `users` row (+ matching `student_profiles` /
