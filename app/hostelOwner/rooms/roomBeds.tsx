@@ -63,7 +63,7 @@ function RoomRow({ room, onChanged }: { room: OwnerRoom; onChanged: () => void }
 
     return (
         <div className="border border-[#E0D9CF] rounded-sm overflow-hidden mb-3 bg-white">
-            <div className="flex items-center justify-between p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4">
                 <div className="flex items-center gap-4 min-w-0">
                     <div className="w-14 h-14 bg-[#EEE9E0] rounded-sm overflow-hidden shrink-0">
                         {room.thumbnail ? (
@@ -84,13 +84,13 @@ function RoomRow({ room, onChanged }: { room: OwnerRoom; onChanged: () => void }
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                     <div className="flex gap-1 hidden sm:flex">
                         {room.beds.map(b => <BedDot key={b.id} status={b.status} occupied={b.occupied} />)}
                     </div>
                     <button
                         onClick={() => setExpanded(e => !e)}
-                        className="text-xs text-[#1E3A5F] border border-[#1E3A5F] px-3 py-1.5 rounded-sm hover:bg-[#EEE9E0]"
+                        className="text-xs text-[#1E3A5F] border border-[#1E3A5F] px-3 py-1.5 rounded-sm hover:bg-[#EEE9E0] hidden sm:block"
                     >
                         Manage Beds
                     </button>
@@ -108,6 +108,18 @@ function RoomRow({ room, onChanged }: { room: OwnerRoom; onChanged: () => void }
                     </button>
                 </div>
             </div>
+
+            {/* Mobile Manage Beds button */}
+            {expanded && (
+                <div className="sm:hidden px-4 py-2 border-t border-[#E0D9CF] bg-[#F9F8F6]">
+                    <button
+                        onClick={() => setExpanded(e => !e)}
+                        className="w-full text-xs text-[#1E3A5F] border border-[#1E3A5F] px-3 py-1.5 rounded-sm hover:bg-white"
+                    >
+                        Manage Beds
+                    </button>
+                </div>
+            )}
 
             {error && <p className="text-xs text-red-500 px-4 pb-2">{error}</p>}
 

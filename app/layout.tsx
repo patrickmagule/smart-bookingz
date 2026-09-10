@@ -27,7 +27,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="en" className={cn(fraunces.variable, inter.variable)}>
+        <html lang="en" className={cn(fraunces.variable, inter.variable)} suppressHydrationWarning>
         <body className="font-sans bg-[#F9F8F6] text-[#1A1A1E] antialiased">
         {children}
         <PaychanguScripts />
