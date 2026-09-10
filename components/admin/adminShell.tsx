@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -11,6 +12,8 @@ import {
     faUsers,
     faCalendarCheck,
     faRightFromBracket,
+    faBars,
+    faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { signOutAction } from '@/app/auth/actions';
 
@@ -31,6 +34,7 @@ interface AdminShellProps {
 
 export function AdminShell({ user, pendingOwners = 0, pendingListings = 0, children }: AdminShellProps) {
     const pathname = usePathname();
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const badgeFor = (href: string) => {
         if (href === '/admin/owners') return pendingOwners;
@@ -54,24 +58,29 @@ export function AdminShell({ user, pendingOwners = 0, pendingListings = 0, child
         <div className="min-h-screen bg-[#F9F8F6]">
             {/* Top bar */}
             <header className="sticky top-0 z-50 bg-[#1E3A5F] border-b border-[#2a4d7a]">
-                <div className="flex h-16 items-center justify-between px-4 lg:px-6">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                        {/* Logo */}
-                        <Link href="/admin" className="flex items-center gap-2.5 shrink-0">
-                            <div className="w-8 h-8 bg-[#C49A2A] flex items-center justify-center rounded-sm">
-                                <FontAwesomeIcon icon={faBuilding} className="h-3.5 w-3.5 text-white" />
-                            </div>
-                            <span className="font-serif text-xl text-white tracking-tight">HostelFind</span>
-                        </Link>
-                        
-                        <div className="w-px h-6 bg-white/15 mx-1 hidden sm:block" />
+                <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
+                    {/* Mobile sidebar toggle */}
+                    <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-white/80 hover:text-white p-1">
+                        <FontAwesomeIcon icon={faBars} className="h-[18px] w-[18px]" />
+                    </button>
 
-                        {/* Page title */}
-                        <div className="hidden sm:block">
-                            <p className="text-sm font-semibold text-white leading-tight">Admin Portal</p>
-                            <p className="text-[10px] text-white/60 leading-tight">{currentLabel}</p>
+                    {/* Logo */}
+                    <Link href="/admin" className="flex items-center gap-2.5 shrink-0">
+                        <div className="w-8 h-8 bg-[#C49A2A] flex items-center justify-center rounded-sm">
+                            <FontAwesomeIcon icon={faBuilding} className="h-3.5 w-3.5 text-white" />
                         </div>
+                        <span className="font-serif text-xl text-white tracking-tight">HostelFind</span>
+                    </Link>
+                    
+                    <div className="w-px h-6 bg-white/15 mx-1 hidden sm:block" />
+
+                    {/* Page title */}
+                    <div className="hidden sm:block">
+                        <p className="text-sm font-semibold text-white leading-tight">Admin Portal</p>
+                        <p className="text-[10px] text-white/60 leading-tight">{currentLabel}</p>
                     </div>
+
+                    <div className="flex-1" />
 
                     <div className="flex items-center gap-3 shrink-0">
                         <div className="hidden sm:flex flex-col items-end leading-none">
@@ -86,9 +95,42 @@ export function AdminShell({ user, pendingOwners = 0, pendingListings = 0, child
             </header>
 
             <div className="flex">
-                {/* Desktop sidebar */}
-                <aside className="hidden lg:flex lg:flex-col w-56 shrink-0 border-r border-[#E0D9CF] bg-white sticky top-16 h-[calc(100vh-64px)]">
-                    <nav className="flex-1 py-3">
+                {/* Mobile overlay */}
+                {sidebarOpen && (
+                    <div className="fixed inset-0 bg-black/40 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
+                )}
+
+                {/* Sidebar */}
+                <aside
+                    className={cn(
+                        'fixed top-0 left-0 h-full w-56 bg-white border-r border-[#E0D9CF] z-40 flex flex-col transition-transform duration-200',
+                        'lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] lg:translate-x-0',
+                        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                    )}
+                >
+                    {/* Mobile sidebar header */}
+                    <div className="lg:hidden flex items-center justify-between px-4 py-4 border-b border-[#2a4d7a] bg-[#1E3A5F]">
+                        <span className="font-serif text-white">HostelFind</span>
+                        <button onClick={() => setSidebarOpen(false)} className="text-white/70">
+                            <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
+                        </button>
+                    </div>
+
+                    {/* Admin info */}
+                    <div className="px-4 py-4 border-b border-[#E0D9CF]">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 bg-[#C49A2A] rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0">
+                                {initials}
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-sm font-semibold text-[#1A1A1E] truncate">{user?.name || 'Admin'}</p>
+                                <p className="text-[10px] text-[#6B6B78] truncate">{user?.email}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Nav */}
+                    <nav className="flex-1 overflow-y-auto py-2">
                         {NAV.map((item) => {
                             const active = isActive(item.href);
                             const badge = badgeFor(item.href);
@@ -96,16 +138,15 @@ export function AdminShell({ user, pendingOwners = 0, pendingListings = 0, child
                                 <Link
                                     key={item.href}
                                     href={item.href}
+                                    onClick={() => setSidebarOpen(false)}
                                     className={cn(
-                                        'flex items-center gap-3 px-4 py-2.5 text-sm transition-colors relative',
-                                        active
-                                            ? 'bg-[#EEE9E0] text-[#1E3A5F] font-medium'
-                                            : 'text-[#6B6B78] hover:bg-[#F9F8F6] hover:text-[#1A1A1E]'
+                                        'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors relative',
+                                        active ? 'bg-[#EEE9E0] text-[#1E3A5F] font-medium' : 'text-[#6B6B78] hover:bg-[#F9F8F6] hover:text-[#1A1A1E]'
                                     )}
                                 >
                                     {active && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#1E3A5F]" />}
                                     <FontAwesomeIcon icon={item.icon} className={cn('h-4 w-4', active ? 'text-[#1E3A5F]' : 'text-[#6B6B78]')} />
-                                    <span className="flex-1">{item.name}</span>
+                                    <span className="flex-1 text-left">{item.name}</span>
                                     {badge > 0 && (
                                         <span className="bg-[#1E3A5F] text-white text-[9px] min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center">
                                             {badge}
@@ -115,6 +156,8 @@ export function AdminShell({ user, pendingOwners = 0, pendingListings = 0, child
                             );
                         })}
                     </nav>
+
+                    {/* Sign out */}
                     <form action={signOutAction} className="p-3 border-t border-[#E0D9CF]">
                         <button
                             type="submit"
@@ -127,32 +170,8 @@ export function AdminShell({ user, pendingOwners = 0, pendingListings = 0, child
                 </aside>
 
                 {/* Content */}
-                <main className="flex-1 min-w-0 p-4 sm:p-6 pb-20 lg:pb-6">{children}</main>
+                <main className="flex-1 min-w-0 p-4 sm:p-6">{children}</main>
             </div>
-
-            {/* Mobile bottom tab bar */}
-            <nav className="lg:hidden fixed inset-x-0 bottom-0 z-30 flex border-t border-[#E0D9CF] bg-white">
-                {NAV.map((item) => {
-                    const active = isActive(item.href);
-                    const badge = badgeFor(item.href);
-                    return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={cn(
-                                'relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px]',
-                                active ? 'text-[#1E3A5F]' : 'text-[#6B6B78]'
-                            )}
-                        >
-                            <FontAwesomeIcon icon={item.icon} className={cn('h-4 w-4', active ? 'text-[#1E3A5F]' : 'text-[#6B6B78]')} />
-                            {item.name}
-                            {badge > 0 && (
-                                <span className="absolute top-1 right-[22%] h-1.5 w-1.5 rounded-full bg-[#1E3A5F]" />
-                            )}
-                        </Link>
-                    );
-                })}
-            </nav>
         </div>
     );
 }
