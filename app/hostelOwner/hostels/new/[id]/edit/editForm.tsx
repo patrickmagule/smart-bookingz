@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { UploadDropzone } from '@/lib/uploadThing';
+import { useUploadThing } from '@/lib/uploadThing';
 import { updateHostelBasicInfo } from './action';
 import type { HostelForEdit } from '@/lib/data/ownerHostelList';
 
@@ -21,6 +21,12 @@ interface ExistingPhoto {
 interface NewPhoto {
     key: string
     url: string
+}
+
+interface PendingUpload {
+    id: string
+    file: File
+    previewUrl: string
 }
 
 export default function EditHostelForm({ hostelId, initial }: { hostelId: string; initial: HostelForEdit }) {
@@ -47,7 +53,48 @@ export default function EditHostelForm({ hostelId, initial }: { hostelId: string
     )
     const [removedPhotoIds, setRemovedPhotoIds] = useState<string[]>([])
     const [newPhotos, setNewPhotos] = useState<NewPhoto[]>([])
+    const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([])
     const [uploadError, setUploadError] = useState<string | null>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const { startUpload, isUploading } = useUploadThing('hostelImages', {
+        onClientUploadComplete: (res) => {
+            setUploadError(null)
+            setNewPhotos(prev => [
+                ...prev,
+                ...res.map(f => ({ url: f.url, key: f.key })),
+            ])
+            setPendingUploads(prev => {
+                prev.forEach(p => URL.revokeObjectURL(p.previewUrl))
+                return []
+            })
+        },
+        onUploadError: (error) => {
+            setUploadError(error.message)
+            setPendingUploads(prev => {
+                prev.forEach(p => URL.revokeObjectURL(p.previewUrl))
+                return []
+            })
+        },
+    })
+
+    // Instant local preview the moment files are picked, independent of the
+    // network request — this fires an upload to UploadThing regardless of
+    // how many photos the hostel already has, including zero.
+    const handleFilesPicked = (fileList: FileList | null) => {
+        if (!fileList || fileList.length === 0) return
+        const files = Array.from(fileList)
+        setUploadError(null)
+        setPendingUploads(prev => [
+            ...prev,
+            ...files.map(file => ({
+                id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
+                file,
+                previewUrl: URL.createObjectURL(file),
+            })),
+        ])
+        startUpload(files)
+    }
 
     const [errors, setErrors] = useState<Record<string, string>>({})
     const [saveError, setSaveError] = useState<string | null>(null)
@@ -63,6 +110,7 @@ export default function EditHostelForm({ hostelId, initial }: { hostelId: string
     }
 
     const removeNewPhoto = (key: string) => setNewPhotos(prev => prev.filter(p => p.key !== key))
+    const hasUploadingPhotos = isUploading || pendingUploads.length > 0
 
     const validate = (): boolean => {
         const newErrors: Record<string, string> = {}
@@ -204,15 +252,25 @@ export default function EditHostelForm({ hostelId, initial }: { hostelId: string
                     )}
 
                     <div className="mb-6">
-                        <UploadDropzone
-                            endpoint="hostelImages"
-                            onClientUploadComplete={(res) => {
-                                setUploadError(null)
-                                setNewPhotos(prev => [...prev, ...res.map(f => ({ url: f.url, key: f.key }))])
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => {
+                                handleFilesPicked(e.target.files)
+                                e.target.value = ''
                             }}
-                            onUploadError={(error) => setUploadError(error.message)}
-                            className="border-2 border-dashed border-[#E0D9CF] hover:border-[#1E3A5F]/40 bg-white ut-label:text-sm ut-label:text-[#1A1A1E] ut-allowed-content:text-[#6B6B78] ut-button:bg-[#1E3A5F] ut-button:hover:bg-[#162d4a] rounded-sm"
                         />
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploading}
+                            className="w-full border-2 border-dashed border-[#E0D9CF] hover:border-[#1E3A5F]/40 bg-white rounded-sm py-10 text-center text-sm text-[#6B6B78] disabled:opacity-60 transition-colors"
+                        >
+                            {isUploading ? 'Uploading…' : '+ Click to choose photos'}
+                        </button>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -234,8 +292,16 @@ export default function EditHostelForm({ hostelId, initial }: { hostelId: string
                                 </div>
                             </div>
                         ))}
+                        {pendingUploads.map((p) => (
+                            <div key={p.id} className="relative rounded-sm overflow-hidden bg-[#EEE9E0] aspect-video">
+                                <img src={p.previewUrl} alt="" className="w-full h-full object-cover opacity-60" />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className="text-[10px] bg-black/60 text-white px-2 py-1 rounded-sm">Uploading…</span>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                    {existingPhotos.length === 0 && newPhotos.length === 0 && (
+                    {existingPhotos.length === 0 && newPhotos.length === 0 && pendingUploads.length === 0 && (
                         <p className="text-xs text-[#6B6B78] mt-3">No photos yet.</p>
                     )}
                 </div>
@@ -244,8 +310,8 @@ export default function EditHostelForm({ hostelId, initial }: { hostelId: string
                 <div className="flex gap-3 pt-6 border-t border-[#E0D9CF]">
                     <Link href="/hostelOwner/hostels" className="border border-[#E0D9CF] text-[#6B6B78] px-5 py-2.5 text-sm rounded-sm hover:bg-[#EEE9E0]">Cancel</Link>
                     <div className="flex-1" />
-                    <button onClick={save} disabled={isPending} className="bg-[#1E3A5F] text-white px-6 py-2.5 text-sm font-semibold rounded-sm hover:bg-[#162d4a] disabled:opacity-60">
-                        {isPending ? 'Saving…' : 'Save Changes'}
+                    <button onClick={save} disabled={isPending || hasUploadingPhotos} className="bg-[#1E3A5F] text-white px-6 py-2.5 text-sm font-semibold rounded-sm hover:bg-[#162d4a] disabled:opacity-60">
+                        {isPending ? 'Saving…' : hasUploadingPhotos ? 'Uploading photos…' : 'Save Changes'}
                     </button>
                 </div>
             </div>

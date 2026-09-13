@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { UploadDropzone } from '@/lib/uploadThing';
+import { useUploadThing } from '@/lib/uploadThing'
 import { createHostelListing } from './actions';
 
 type Step = 'basic' | 'rooms' | 'photos' | 'pricing' | 'review';
@@ -25,6 +25,12 @@ interface RoomDraft {
 interface PhotoDraft {
     url: string
     key: string
+}
+
+interface PendingUpload {
+    id: string
+    file: File
+    previewUrl: string
 }
 
 const ROOM_TYPES = ['Single', 'Double', 'Triple', 'Quad', 'Studio']
@@ -82,7 +88,48 @@ export default function AddListingForm() {
 
     // Photos — real UploadThing uploads, URLs only
     const [photos, setPhotos] = useState<PhotoDraft[]>([])
+    const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([])
     const [uploadError, setUploadError] = useState<string | null>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const { startUpload, isUploading } = useUploadThing('hostelImages', {
+        onClientUploadComplete: (res) => {
+            setUploadError(null)
+            setPhotos(prev => [
+                ...prev,
+                ...res.map(f => ({ url: f.url, key: f.key })),
+            ])
+            setPendingUploads(prev => {
+                prev.forEach(p => URL.revokeObjectURL(p.previewUrl))
+                return []
+            })
+        },
+        onUploadError: (error) => {
+            setUploadError(error.message)
+            setPendingUploads(prev => {
+                prev.forEach(p => URL.revokeObjectURL(p.previewUrl))
+                return []
+            })
+        },
+    })
+
+    const handleFilesPicked = (fileList: FileList | null) => {
+        if (!fileList || fileList.length === 0) return
+        const files = Array.from(fileList)
+        setUploadError(null)
+        // Instant local previews — independent of the network request,
+        // so the user sees proof a file was picked even if the upload
+        // itself is slow or fails.
+        setPendingUploads(prev => [
+            ...prev,
+            ...files.map(file => ({
+                id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
+                file,
+                previewUrl: URL.createObjectURL(file),
+            })),
+        ])
+        startUpload(files)
+    }
 
     // Errors / submission
     const [errors, setErrors] = useState<Record<string, string>>({})
@@ -110,7 +157,7 @@ export default function AddListingForm() {
     const removeRoom = (id: string) => setRooms(prev => prev.filter(r => r.id !== id))
 
     const updateRoom = (id: string, field: keyof RoomDraft, value: unknown) =>
-    setRooms(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r))
+        setRooms(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r))
 
     const addBed = (roomId: string) => {
         setRooms(prev => prev.map(r => {
@@ -268,7 +315,7 @@ export default function AddListingForm() {
                                 setStep('basic')
                                 setHostelName(''); setAddress(''); setLocation(''); setDistance('')
                                 setGender('mixed'); setDescription(''); setContactPhone('')
-                                setSelectedFacilities([]); setRooms([]); setPhotos([])
+                                setSelectedFacilities([]); setRooms([]); setPhotos([]); setPendingUploads([])
                             }}
                             className="border border-[#E0D9CF] text-[#6B6B78] px-5 py-2.5 text-sm rounded-sm hover:bg-[#EEE9E0]"
                         >
@@ -513,26 +560,36 @@ export default function AddListingForm() {
                             <div className="bg-red-50 border border-red-200 rounded-sm px-3 py-2 mb-4 text-xs text-red-600">{uploadError}</div>
                         )}
 
-                        {/* Real upload — hits /api/uploadthing, only the returned URL is kept */}
+                        {/* Real upload — hits /api/uploadthing via useUploadThing, only the
+                            returned URL is kept. The hidden input + button gives us full
+                            control over showing an instant local preview the moment a file
+                            is picked, independent of whether the network upload succeeds. */}
                         <div className="mb-6">
-                            <UploadDropzone
-                                endpoint="hostelImages"
-                                onClientUploadComplete={(res) => {
-                                    setUploadError(null)
-                                    setPhotos(prev => [
-                                        ...prev,
-                                        ...res.map(f => ({ url: f.url, key: f.key })),
-                                    ])
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                className="hidden"
+                                onChange={(e) => {
+                                    handleFilesPicked(e.target.files)
+                                    e.target.value = ''
                                 }}
-                                onUploadError={(error) => setUploadError(error.message)}
-                                className="border-2 border-dashed border-[#E0D9CF] hover:border-[#1E3A5F]/40 bg-white ut-label:text-sm ut-label:text-[#1A1A1E] ut-allowed-content:text-[#6B6B78] ut-button:bg-[#1E3A5F] ut-button:hover:bg-[#162d4a] rounded-sm"
                             />
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isUploading}
+                                className="w-full border-2 border-dashed border-[#E0D9CF] hover:border-[#1E3A5F]/40 bg-white rounded-sm py-10 text-center text-sm text-[#6B6B78] disabled:opacity-60 transition-colors"
+                            >
+                                {isUploading ? 'Uploading…' : '+ Click to choose photos'}
+                            </button>
                         </div>
 
                         {/* Preview grid */}
                         <div>
                             <p className="text-xs font-medium text-[#6B6B78] uppercase tracking-wider mb-3">Preview ({photos.length} photos)</p>
-                            {photos.length === 0 ? (
+                            {photos.length === 0 && pendingUploads.length === 0 ? (
                                 <p className="text-xs text-[#6B6B78]">No photos uploaded yet.</p>
                             ) : (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -546,6 +603,14 @@ export default function AddListingForm() {
                                                     <button onClick={() => makeCover(photo.key)} className="bg-white text-[#1E3A5F] rounded-sm px-2 py-1 text-[10px] hover:bg-[#EEE9E0]">Make cover</button>
                                                 )}
                                                 <button onClick={() => removePhoto(photo.key)} className="bg-white text-red-500 rounded-sm w-7 h-7 flex items-center justify-center text-xs hover:bg-red-50">✕</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {pendingUploads.map(p => (
+                                        <div key={p.id} className="relative rounded-sm overflow-hidden bg-[#EEE9E0] aspect-video">
+                                            <img src={p.previewUrl} alt="" className="w-full h-full object-cover opacity-60" />
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className="text-[10px] bg-black/60 text-white px-2 py-1 rounded-sm">Uploading…</span>
                                             </div>
                                         </div>
                                     ))}
