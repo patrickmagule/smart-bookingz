@@ -5,7 +5,10 @@ import crypto from 'crypto';
 
 export async function POST(req: Request) {
     const rawBody = await req.text();
-    const signature = req.headers.get('x-paychangu-signature'); // confirm exact header in PayChangu's webhook docs
+    // PayChangu sends the HMAC in a header literally named "Signature"
+    // (confirmed from the actual request headers in the PayChangu dashboard),
+    // not "x-paychangu-signature".
+    const signature = req.headers.get('signature');
 
     const expected = crypto
         .createHmac('sha256', process.env.PAYCHANGU_WEBHOOK_SECRET!)
@@ -31,16 +34,11 @@ export async function POST(req: Request) {
     });
     const verified = await verifyRes.json();
 
-    // IMPORTANT: `verified.status` is the *API call's* status (almost always "success"
-    // as long as the request itself worked) — NOT the transaction's outcome.
-    // The actual payment status lives at `verified.data.status`.
     const transactionStatus: string | undefined = verified?.data?.status;
 
     const [sub] = await sql`SELECT plan, amount FROM subscriptions WHERE tx_ref = ${tx_ref}`;
     if (!sub) return new Response('Unknown tx_ref', { status: 404 });
 
-    // Sanity-check the confirmed amount matches what we charged for this plan,
-    // so a tampered client-side amount can't be used to activate a cheaper plan.
     const amountMatches =
         verified?.data?.amount != null && Number(verified.data.amount) === Number(sub.amount);
 
