@@ -23,30 +23,36 @@ export default async function ConversationThreadPage({
     const { conversationId } = await params;
 
     const { data } = await auth.getSession();
+    console.log('[conversation-thread] authUserId:', data?.user?.id, 'conversationId:', conversationId);
+
     const [user] = await sql`SELECT id FROM users WHERE auth_id = ${data?.user?.id} LIMIT 1`;
-    if (!user) return notFound();
+    console.log('[conversation-thread] resolved app user:', user);
+    if (!user) {
+        console.log('[conversation-thread] 404 reason: no matching users row for this auth_id');
+        return notFound();
+    }
 
     const conversation = await getConversationForStudent(conversationId, user.id);
-    if (!conversation) return notFound();
+    console.log('[conversation-thread] conversation lookup result:', conversation);
+    if (!conversation) {
+        // Extra diagnostic: does the conversation row exist at all, regardless
+        // of student_id/join matches? This tells us whether it's a mismatch
+        // (row exists, wrong owner) or a genuinely missing/broken row.
+        const [rawRow] = await sql`SELECT id, student_id, owner_id, hostel_id FROM conversations WHERE id = ${conversationId}`;
+        console.log('[conversation-thread] raw conversations row (no joins, no student filter):', rawRow);
+        console.log('[conversation-thread] 404 reason: getConversationForStudent returned null — see raw row above for why');
+        return notFound();
+    }
 
     const active = await getActiveSubscription(user.id);
     const hasActiveSub = !!active;
 
-    // Fetch messages BEFORE marking anything as read, so we can tell which
-    // ones were genuinely already opened vs brand new — that distinction is
-    // what drives the paywall blur below.
     const messages = await getConversationMessages(conversationId);
 
-    // Only mark messages as read once the student can actually see them.
-    // If they're not subscribed, leave unread messages unread so they stay
-    // locked until the student subscribes and genuinely opens them.
     if (hasActiveSub) {
         await markMessagesRead(conversationId, user.id);
     }
 
-    // Same locked/message computation the live GET route uses — computed
-    // once here, shared, so SSR and the socket-driven refetch can never
-    // drift out of sync with each other.
     const initialMessages = toClientMessages(messages, user.id, hasActiveSub);
 
     return (
