@@ -56,7 +56,7 @@ export default async function HostelOwnerPage() {
     { label: 'Add New Hostel Listing', href: '/hostelOwner/hostels/new', icon: faPlus },
     { label: 'Manage Rooms & Beds', href: '/hostelOwner/rooms', icon: faBed },
     { label: 'Messages', href: '/hostelOwner/messages', icon: faMessage },
-    { label: 'Generate Report', href: '/hostelOwner/reports', icon: faChartLine },
+
   ];
 
   return (

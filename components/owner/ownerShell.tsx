@@ -36,7 +36,6 @@ const NAV = [
     { href: '/hostelOwner/rooms', label: 'Rooms & Beds', icon: faBed },
     { href: '/hostelOwner/bookings', label: 'Bookings', icon: faCalendarCheck, badgeKey: 'pendingCount' as const },
     { href: '/hostelOwner/messages', label: 'Messages', icon: faMessage, badgeKey: 'unreadMsgs' as const },
-    { href: '/hostelOwner/reports', label: 'Reports', icon: faChartLine },
     { href: '/hostelOwner/notifications', label: 'Notifications', icon: faBell, badgeKey: 'unreadNotifs' as const },
     { href: '/hostelOwner/profile', label: 'Profile', icon: faCircleUser },
 ];

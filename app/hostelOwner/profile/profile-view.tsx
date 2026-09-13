@@ -1,14 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { 
-  Mail, 
-  Phone, 
-  ShieldCheck, 
-  Calendar,
-  Edit2
-} from 'lucide-react';
+import { Mail, Phone, Calendar, ShieldCheck } from 'lucide-react';
 import { ProfileForm } from '@/components/owner/profile-form';
+import { ProfileHeaderCard } from '@/components/profile/profile-header-card';
+import { ProfileDetailItem } from '@/components/profile/profile-detail-item';
+import { AccountSecurityCard } from '@/components/profile/account-security-card';
 import type { UserData, VerificationData } from './types';
 
 type ProfileViewProps = {
@@ -21,121 +18,68 @@ export function ProfileView({ user, verification }: ProfileViewProps) {
 
   if (isEditing) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="space-y-6">
           <div>
             <h1 className="text-2xl font-bold text-navy">Edit Profile</h1>
             <p className="text-mist">Update your personal information.</p>
           </div>
+          <div className="max-w-2xl">
+            <ProfileForm user={user} onClose={() => setIsEditing(false)} />
+          </div>
         </div>
-        <div className="max-w-2xl">
-          <ProfileForm user={user} onClose={() => setIsEditing(false)} />
-        </div>
-      </div>
     );
   }
 
+  const isVerified = verification?.status === 'VERIFIED';
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-navy">My Profile</h1>
           <p className="text-mist">Manage your personal information and account settings.</p>
         </div>
-        <button 
-          onClick={() => setIsEditing(true)}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-navy shadow-sm transition hover:bg-slate-50"
+
+        <ProfileHeaderCard
+            firstName={user?.first_name}
+            lastName={user?.last_name}
+            roleLabel="Hostel Owner"
+            onEdit={() => setIsEditing(true)}
         >
-          <Edit2 size={16} />
-          Edit Profile
-        </button>
-      </div>
+          <ProfileDetailItem icon={Mail}>{user?.email}</ProfileDetailItem>
+          <ProfileDetailItem icon={Phone}>{user?.phone || 'No phone number added'}</ProfileDetailItem>
+          <ProfileDetailItem icon={Calendar}>
+            Joined {user?.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}
+          </ProfileDetailItem>
+        </ProfileHeaderCard>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* Profile Card */}
-        <div className="lg:col-span-1">
-          <div className="overflow-hidden rounded-xl bg-white shadow-sm border border-slate-100">
-            <div className="h-24 bg-navy"></div>
-            <div className="px-6 pb-6">
-              <div className="-mt-12 flex justify-center">
-                <div className="h-24 w-24 rounded-full border-4 border-white bg-gold/10 text-gold flex items-center justify-center text-3xl font-bold shadow-sm">
-                  {user?.first_name?.[0]}{user?.last_name?.[0]}
-                </div>
-              </div>
-              <div className="mt-4 text-center">
-                <h3 className="text-xl font-bold text-navy">{user?.first_name} {user?.last_name}</h3>
-                <p className="text-sm text-mist">Hostel Owner</p>
-              </div>
-              
-              <div className="mt-6 flex flex-col gap-3 border-t border-slate-50 pt-6">
-                <div className="flex items-center gap-3 text-sm text-slate-600">
-                  <Mail size={16} className="text-slate-400" />
-                  {user?.email}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-slate-600">
-                  <Phone size={16} className="text-slate-400" />
-                  {user?.phone || 'No phone number added'}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-slate-600">
-                  <Calendar size={16} className="text-slate-400" />
-                  Joined {new Date(user?.created_at).toLocaleDateString()}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Verification & Stats */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-100">
-            <h3 className="text-lg font-bold text-navy mb-4">Account Status</h3>
-            <div className="flex items-start gap-4 rounded-lg bg-slate-50 p-4 border border-slate-100">
-              <div className={cn(
-                "p-2 rounded-full",
-                verification?.status === 'VERIFIED' ? "bg-green-100 text-green-600" : "bg-gold/10 text-gold"
-              )}>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 bg-white p-6">
+            <h3 className="mb-4 text-lg font-bold text-navy">Account Status</h3>
+            <div className="flex items-start gap-4 rounded-lg border border-slate-100 bg-slate-50 p-4">
+              <div
+                  className={cn(
+                      'rounded-full p-2',
+                      isVerified ? 'bg-green-100 text-green-600' : 'bg-gold/10 text-gold'
+                  )}
+              >
                 <ShieldCheck size={24} />
               </div>
               <div>
                 <h4 className="font-semibold text-navy">
-                  {verification?.status === 'VERIFIED' ? 'Verified Owner' : 'Pending Verification'}
+                  {isVerified ? 'Verified Owner' : 'Pending Verification'}
                 </h4>
-                <p className="text-sm text-slate-500 mt-1">
-                  {verification?.status === 'VERIFIED' 
-                    ? 'Your account is fully verified. Your hostels are visible to students.' 
-                    : 'Your account is currently under review. Some features may be restricted until verified.'}
+                <p className="mt-1 text-sm text-slate-500">
+                  {isVerified
+                      ? 'Your account is fully verified. Your hostels are visible to students.'
+                      : 'Your account is currently under review. Some features may be restricted until verified.'}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-100">
-            <h3 className="text-lg font-bold text-navy mb-4">Account Security</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <p className="font-medium text-navy">Email Verification</p>
-                  <p className="text-xs text-mist">{user?.email_verified ? 'Your email is verified' : 'Please verify your email'}</p>
-                </div>
-                {user?.email_verified ? (
-                   <span className="text-xs font-bold text-green-600">ACTIVE</span>
-                ) : (
-                   <button className="text-xs font-bold text-gold hover:underline">VERIFY NOW</button>
-                )}
-              </div>
-              <div className="h-px bg-slate-50"></div>
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <p className="font-medium text-navy">Password</p>
-                  <p className="text-xs text-mist">Last changed 3 months ago</p>
-                </div>
-                <button className="text-xs font-bold text-navy hover:underline">CHANGE</button>
-              </div>
-            </div>
-          </div>
+          <AccountSecurityCard emailVerified={user?.email_verified} email={user?.email} />
         </div>
       </div>
-    </div>
   );
 }
 

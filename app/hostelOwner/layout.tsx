@@ -47,7 +47,7 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
             <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
                 <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
                 <p className="text-lg text-gray-700 max-w-md">
-                    You can't access the system. Not verified by an admin. Wait until verified or call customer support.
+                    You can&#39;t access the system. Not verified by an admin. Wait until verified or call customer support.
                 </p>
                 <div className="mt-8">
                     <form action={signOutAction}>
