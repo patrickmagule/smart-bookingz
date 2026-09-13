@@ -57,13 +57,22 @@ export default function SubscribeButton({ customer }: SubscribeButtonProps) {
                 throw new Error('Could not start checkout. Please try again.');
             }
 
+            // Both redirects point at the status page, not at the webhook API
+            // route — that route only handles server-to-server POSTs (configured
+            // separately via the PayChangu Dashboard's webhook URL setting) and
+            // was never meant to receive a browser redirect. The status page
+            // re-verifies tx_ref server-side, so it's a safe landing spot
+            // whether PayChangu sends the user here on success (callback_url)
+            // or on cancel/failure (return_url).
+            const statusUrl = `${window.location.origin}/student/subscribe/status?tx_ref=${tx_ref}`;
+
             window.PaychanguCheckout({
                 public_key: process.env.NEXT_PUBLIC_PAYCHANGU_PUBLIC_KEY!,
                 tx_ref,
                 amount,
                 currency: 'MWK',
-                callback_url: `${window.location.origin}/api/subscriptions/callback`,
-                return_url: `${window.location.origin}/student/subscribe/status?tx_ref=${tx_ref}`,
+                callback_url: statusUrl,
+                return_url: statusUrl,
                 customer: {
                     email: customer.email,
                     first_name: customer.firstName,
