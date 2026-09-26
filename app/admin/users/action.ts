@@ -12,6 +12,12 @@ interface UserRoleRow {
     role: string;
 }
 
+interface UserAuthRow {
+    id: string;
+    role: string;
+    auth_id: string | null;
+}
+
 interface ImageRow {
     image_url: string;
 }
@@ -44,6 +50,40 @@ function keyFromUploadThingUrl(url: string): string | null {
     }
 }
 
+// Neon Auth's `neon_auth.users_sync` table is a synced mirror of the auth
+// provider, not a table we own — deleting the row directly isn't reliable
+// (the next sync can reintroduce it, and it leaves the actual auth account
+// alive, so the person could still exist as a login with no `users` row
+// behind it). The supported way to remove them is Neon's Auth Management
+// API, which deletes the underlying auth user and lets that removal sync
+// down to `users_sync` on its own.
+// Docs: https://neon.com/docs/neon-auth/api
+async function deleteNeonAuthUser(authId: string): Promise<void> {
+    const apiKey = process.env.NEON_API_KEY;
+    const projectId = process.env.NEON_PROJECT_ID;
+    if (!apiKey || !projectId) {
+        console.error(
+            `Skipped Neon Auth deletion for auth_id ${authId}: NEON_API_KEY / NEON_PROJECT_ID not configured`
+        );
+        return;
+    }
+
+    const res = await fetch(
+        `https://console.neon.tech/api/v2/projects/${projectId}/auth/users/${authId}`,
+        {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${apiKey}` },
+        }
+    );
+
+    // 404 means it's already gone (e.g. a retry after a partial failure) —
+    // treat that as success rather than an error.
+    if (!res.ok && res.status !== 404) {
+        const body = await res.text().catch(() => '');
+        throw new Error(`Neon Auth delete failed (${res.status}): ${body}`);
+    }
+}
+
 export async function deleteUserCompletely(userId: string) {
     const adminId = await currentAdminId();
 
@@ -52,8 +92,8 @@ export async function deleteUserCompletely(userId: string) {
     }
 
     const [target] = (await sql`
-        SELECT id, role FROM users WHERE id = ${userId} LIMIT 1
-    `) as UserRoleRow[];
+        SELECT id, role, auth_id FROM users WHERE id = ${userId} LIMIT 1
+    `) as UserAuthRow[];
     if (!target) throw new Error('User not found');
     if (target.role === 'ADMIN') {
         throw new Error('Admin accounts cannot be deleted from this panel.');
@@ -64,14 +104,14 @@ export async function deleteUserCompletely(userId: string) {
     const hostelImages = (await sql`
         SELECT hi.image_url
         FROM hostel_images hi
-        JOIN hostels h ON h.id = hi.hostel_id
+                 JOIN hostels h ON h.id = hi.hostel_id
         WHERE h.owner_id = ${userId}
     `) as ImageRow[];
     const roomImages = (await sql`
         SELECT ri.image_url
         FROM room_images ri
-        JOIN rooms r ON r.id = ri.room_id
-        JOIN hostels h ON h.id = r.hostel_id
+                 JOIN rooms r ON r.id = ri.room_id
+                 JOIN hostels h ON h.id = r.hostel_id
         WHERE h.owner_id = ${userId}
     `) as ImageRow[];
     const fileKeys = [...hostelImages, ...roomImages]
@@ -88,11 +128,11 @@ export async function deleteUserCompletely(userId: string) {
         SELECT b.id FROM bookings b
         WHERE b.student_id = ${userId}
            OR b.space_id IN (
-               SELECT rs.id FROM room_spaces rs
-               JOIN rooms r ON r.id = rs.room_id
-               JOIN hostels h ON h.id = r.hostel_id
-               WHERE h.owner_id = ${userId}
-           )
+            SELECT rs.id FROM room_spaces rs
+                                  JOIN rooms r ON r.id = rs.room_id
+                                  JOIN hostels h ON h.id = r.hostel_id
+            WHERE h.owner_id = ${userId}
+        )
     `) as BookingIdRow[];
     const bookingIds = bookings.map((b) => b.id);
 
@@ -133,6 +173,19 @@ export async function deleteUserCompletely(userId: string) {
 
         return queries;
     });
+
+    // --- Auth cleanup also runs after the DB transaction commits. The
+    // `users` row is already gone at this point regardless of whether this
+    // succeeds, so a failed call here leaves an orphaned Neon Auth account
+    // (not a half-deleted user) — a cleanup task, same as a failed
+    // UploadThing delete below.
+    if (target.auth_id) {
+        try {
+            await deleteNeonAuthUser(target.auth_id);
+        } catch (err) {
+            console.error(`Failed to delete Neon Auth user for ${userId} (auth_id=${target.auth_id}):`, err);
+        }
+    }
 
     // --- Storage cleanup runs after the DB transaction commits, so a
     // failed UploadThing call never blocks or rolls back the user deletion.
