@@ -54,22 +54,24 @@ function keyFromUploadThingUrl(url: string): string | null {
 // provider, not a table we own — deleting the row directly isn't reliable
 // (the next sync can reintroduce it, and it leaves the actual auth account
 // alive, so the person could still exist as a login with no `users` row
-// behind it). The supported way to remove them is Neon's Auth Management
-// API, which deletes the underlying auth user and lets that removal sync
-// down to `users_sync` on its own.
-// Docs: https://neon.com/docs/neon-auth/api
+// behind it). The supported way to remove them is Neon's management-plane
+// Auth API (console.neon.tech — separate from the runtime NEON_AUTH_BASE_URL
+// / Data API endpoints), which deletes the underlying auth user and lets
+// that removal sync down to `users_sync` on its own.
+// Docs: https://neon.com/docs/reference/api/auth/delete-branch-neon-auth-user
 async function deleteNeonAuthUser(authId: string): Promise<void> {
     const apiKey = process.env.NEON_API_KEY;
     const projectId = process.env.NEON_PROJECT_ID;
-    if (!apiKey || !projectId) {
+    const branchId = process.env.NEON_BRANCH_ID;
+    if (!apiKey || !projectId || !branchId) {
         console.error(
-            `Skipped Neon Auth deletion for auth_id ${authId}: NEON_API_KEY / NEON_PROJECT_ID not configured`
+            `Skipped Neon Auth deletion for auth_id ${authId}: NEON_API_KEY / NEON_PROJECT_ID / NEON_BRANCH_ID not configured`
         );
         return;
     }
 
     const res = await fetch(
-        `https://console.neon.tech/api/v2/projects/${projectId}/auth/users/${authId}`,
+        `https://console.neon.tech/api/v2/projects/${projectId}/branches/${branchId}/auth/users/${authId}`,
         {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${apiKey}` },
