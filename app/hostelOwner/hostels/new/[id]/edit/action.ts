@@ -52,8 +52,12 @@ type UpdateHostelInput = {
     contactPhone: string;
     facilities: string[];
     keepImageIds: string[];        // existing hostel_images.id the owner kept
-    newPhotos: { url: string }[];  // freshly uploaded UploadThing urls
+    newPhotos: { url: string }[];
+    latitude: number | null;
+    longitude: number | null;// freshly uploaded UploadThing urls
 };
+const MUBAS_LNG = 35.02838775495957;
+const MUBAS_LAT = -15.801346118270276;
 
 export async function updateHostelBasicInfo(hostelId: string, input: UpdateHostelInput) {
     const ownerId = await requireOwnerId();
@@ -65,21 +69,42 @@ export async function updateHostelBasicInfo(hostelId: string, input: UpdateHoste
     if (!input.contactPhone.trim()) throw new Error('Contact phone is required');
     if (!input.description.trim()) throw new Error('Description is required');
 
-    const distanceKm = input.distance.trim() ? Number(input.distance) : null;
-    if (distanceKm !== null && (Number.isNaN(distanceKm) || distanceKm < 0)) {
-        throw new Error('Distance from MUBAS must be a valid, non-negative number');
+    // replaced
+
+    const hasCoords = input.latitude != null && input.longitude != null;
+
+    let distanceKm: number | null = null;
+    if (hasCoords) {
+        const [{ km }] = await sql`
+      SELECT ST_Distance(
+        ST_SetSRID(ST_MakePoint(${input.longitude}, ${input.latitude}), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(${MUBAS_LNG}, ${MUBAS_LAT}), 4326)::geography
+      ) / 1000.0 AS km
+    `;
+        distanceKm = Math.round(Number(km) * 10) / 10;
+    } else if (input.distance.trim()) {
+        distanceKm = Number(input.distance);
+        if (Number.isNaN(distanceKm) || distanceKm < 0) {
+            throw new Error('Distance from MUBAS must be a valid, non-negative number');
+        }
     }
+
+    const locationExpr = hasCoords
+        ? sql`ST_SetSRID(ST_MakePoint(${input.longitude}, ${input.latitude}), 4326)::geography`
+        : sql`NULL`;
+
 
     await sql`
         UPDATE hostels SET
-            name = ${input.hostelName},
-            address = ${input.address},
-            area = ${input.location},
-            contact_phone = ${input.contactPhone},
-            distance_from_campus_km = ${distanceKm},
-            gender_preference = ${input.gender},
-            description = ${input.description},
-            updated_at = now()
+                           name = ${input.hostelName},
+                           address = ${input.address},
+                           area = ${input.location},
+                           contact_phone = ${input.contactPhone},
+                           distance_from_campus_km = ${distanceKm},
+                           location = ${hasCoords ? locationExpr : sql`location`},
+                           gender_preference = ${input.gender},
+                           description = ${input.description},
+                           updated_at = now()
         WHERE id = ${hostelId}
     `;
 

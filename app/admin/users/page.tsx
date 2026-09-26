@@ -1,6 +1,17 @@
 import { sql } from '@/lib/db';
+import { DeleteUserButton } from '@/components/admin/deleteUserButton';
 
 const ROLES = ['STUDENT', 'OWNER', 'ADMIN'] as const;
+
+interface UserRow {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    role: string;
+    status: string;
+    created_at: string;
+}
 
 function statusStyle(status: string) {
     switch (status) {
@@ -17,15 +28,15 @@ function statusStyle(status: string) {
 }
 
 export default async function AdminUsersPage({
-    searchParams,
-}: {
+                                                 searchParams,
+                                             }: {
     searchParams: Promise<{ role?: string; q?: string }>;
 }) {
     const params = await searchParams;
     const role = params.role && (ROLES as readonly string[]).includes(params.role) ? params.role : null;
     const q = params.q?.trim() || null;
 
-    const users = await sql`
+    const users = (await sql`
         SELECT id, first_name, last_name, email, role, status, created_at
         FROM users
         WHERE (${role}::text IS NULL OR role = ${role})
@@ -37,7 +48,7 @@ export default async function AdminUsersPage({
           )
         ORDER BY created_at DESC
         LIMIT 200
-    `;
+    `) as UserRow[];
 
     const tabHref = (r: string | null) => {
         const sp = new URLSearchParams();
@@ -89,7 +100,7 @@ export default async function AdminUsersPage({
                 {users.length === 0 ? (
                     <p className="p-4 text-sm text-slate-500">No users match.</p>
                 ) : (
-                    users.map((u: any) => (
+                    users.map((u) => (
                         <div key={u.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <p className="text-sm font-medium text-navy">
@@ -104,6 +115,12 @@ export default async function AdminUsersPage({
                                 <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusStyle(u.status)}`}>
                                     {u.status}
                                 </span>
+                                {u.role !== 'ADMIN' && (
+                                    <DeleteUserButton
+                                        userId={u.id}
+                                        userName={`${u.first_name} ${u.last_name}`}
+                                    />
+                                )}
                             </div>
                         </div>
                     ))

@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useUploadThing } from '@/lib/uploadThing';
 import { updateHostelBasicInfo } from './action';
 import type { HostelForEdit } from '@/lib/data/ownerHostelList';
+import LocationPicker from '@/components/owner/LocationPicker'
+import { distanceFromMubasKm } from '@/lib/geo'
 
 const FACILITIES_OPTIONS = [
     'Wi-Fi', 'CCTV Security', 'Backup Generator', 'Water 24/7', 'Common Room',
@@ -41,6 +43,14 @@ export default function EditHostelForm({ hostelId, initial }: { hostelId: string
             ? String(hostel.distance_from_campus_km)
             : ''
     )
+    // NOTE: hostel.latitude / hostel.longitude don't exist on HostelForEdit yet —
+    // getHostelForEdit in lib/data/ownerHostelList.ts needs ST_Y/ST_X added to its
+    // SELECT. This local type stands in until then; once those fields are added
+    // to HostelForEdit itself, drop this cast and just use hostel.latitude directly.
+    type HostelWithCoords = typeof hostel & { latitude?: number | null; longitude?: number | null }
+    const hostelWithCoords = hostel as HostelWithCoords
+    const [latitude, setLatitude] = useState<number | null>(hostelWithCoords.latitude ?? null)
+    const [longitude, setLongitude] = useState<number | null>(hostelWithCoords.longitude ?? null)
     const [gender, setGender] = useState<'mixed' | 'male' | 'female'>(
         (hostel.gender_preference as 'mixed' | 'male' | 'female') ?? 'mixed'
     )
@@ -78,9 +88,6 @@ export default function EditHostelForm({ hostelId, initial }: { hostelId: string
         },
     })
 
-    // Instant local preview the moment files are picked, independent of the
-    // network request — this fires an upload to UploadThing regardless of
-    // how many photos the hostel already has, including zero.
     const handleFilesPicked = (fileList: FileList | null) => {
         if (!fileList || fileList.length === 0) return
         const files = Array.from(fileList)
@@ -117,7 +124,7 @@ export default function EditHostelForm({ hostelId, initial }: { hostelId: string
         if (hostelName.trim() === '') newErrors.hostelName = 'Hostel name is required'
         if (address.trim() === '') newErrors.address = 'Address is required'
         if (location.trim() === '') newErrors.location = 'Location/area is required'
-        if (distance.trim() === '') newErrors.distance = 'Distance from MUBAS is required'
+        // distance/coordinates are optional now — owner may not be at the hostel
         if (contactPhone.trim() === '') newErrors.contactPhone = 'Contact phone is required'
         if (description.trim() === '') newErrors.description = 'Description is required'
         setErrors(newErrors)
@@ -136,6 +143,8 @@ export default function EditHostelForm({ hostelId, initial }: { hostelId: string
                     address,
                     location,
                     distance,
+                    latitude,
+                    longitude,
                     gender,
                     description,
                     contactPhone,
@@ -198,11 +207,6 @@ export default function EditHostelForm({ hostelId, initial }: { hostelId: string
                                 {errors.location && <p className="text-xs text-red-500 mt-1">{errors.location}</p>}
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-[#1A1A1E] mb-1.5">Distance from MUBAS (km) <span className="text-red-400">*</span></label>
-                                <input type="number" step="0.1" min="0" value={distance} onChange={e => setDistance(e.target.value)} className={`w-full border rounded-sm px-3 py-2.5 text-sm outline-none ${errors.distance ? 'border-red-400' : 'border-[#E0D9CF] focus:border-[#1E3A5F]'}`} />
-                                {errors.distance && <p className="text-xs text-red-500 mt-1">{errors.distance}</p>}
-                            </div>
-                            <div>
                                 <label className="block text-xs font-medium text-[#1A1A1E] mb-1.5">Contact Phone <span className="text-red-400">*</span></label>
                                 <input value={contactPhone} onChange={e => setContactPhone(e.target.value)} className={`w-full border rounded-sm px-3 py-2.5 text-sm outline-none ${errors.contactPhone ? 'border-red-400' : 'border-[#E0D9CF] focus:border-[#1E3A5F]'}`} />
                                 {errors.contactPhone && <p className="text-xs text-red-500 mt-1">{errors.contactPhone}</p>}
@@ -214,6 +218,20 @@ export default function EditHostelForm({ hostelId, initial }: { hostelId: string
                                     <option value="male">Male only</option>
                                     <option value="female">Female only</option>
                                 </select>
+                            </div>
+                            <div className="sm:col-span-2">
+                                <label className="block text-xs font-medium text-[#1A1A1E] mb-1.5">Hostel Location on Map</label>
+                                <LocationPicker
+                                    value={latitude != null && longitude != null ? { lat: latitude, lng: longitude } : null}
+                                    onChange={(loc) => {
+                                        setLatitude(loc.lat)
+                                        setLongitude(loc.lng)
+                                        setDistance(String(distanceFromMubasKm(loc.lat, loc.lng)))
+                                    }}
+                                />
+                                {distance && (
+                                    <p className="text-xs text-[#1E3A5F] font-medium mt-2">≈ {distance} km from MUBAS (auto-calculated)</p>
+                                )}
                             </div>
                             <div className="sm:col-span-2">
                                 <label className="block text-xs font-medium text-[#1A1A1E] mb-1.5">Hostel Description <span className="text-red-400">*</span></label>

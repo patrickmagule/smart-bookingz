@@ -17,6 +17,10 @@ import HostelPaywall from '@/components/student/hostelPaywall';
 import BookingPanel from '@/components/student/bookingPanel';
 import MessageOwnerForm from '@/components/student/messageOwnerForm';
 
+function getDirectionsUrl(lat: number, lng: number) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+}
+
 export const dynamic = 'force-dynamic';
 
 export default async function StudentHostelDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -63,6 +67,14 @@ export default async function StudentHostelDetailPage({ params }: { params: Prom
                                         `, ${hostel.distance_from_campus_km}km from MUBAS`}
                                 </span>
                             </div>
+                            {hostel.latitude != null && hostel.longitude != null ? (
+                                <a href={getDirectionsUrl(hostel.latitude, hostel.longitude)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-medium text-[#1E3A5F] hover:underline mt-1.5">
+                                    <FontAwesomeIcon icon={faLocationDot} className="h-3 w-3" />
+                                    Get Directions on Google Maps
+                                </a>
+                            ) : (
+                                <p className="text-xs text-[#6B6B78] mt-1.5">Location not available</p>
+                            )}
                         </div>
 
                         {hostel.description && (
@@ -99,17 +111,11 @@ export default async function StudentHostelDetailPage({ params }: { params: Prom
                                         <p className="text-sm font-medium text-[#1A1A1E]">
                                             {hostel.owner.first_name} {hostel.owner.last_name}
                                         </p>
-                                        <a
-                                            href={`tel:${hostel.contact_phone || hostel.owner.phone || ''}`}
-                                            className="flex items-center gap-1.5 text-sm text-[#6B6B78] mt-2"
-                                        >
+                                        <a href={`tel:${hostel.contact_phone || hostel.owner.phone || ''}`} className="flex items-center gap-1.5 text-sm text-[#6B6B78] mt-2">
                                             <FontAwesomeIcon icon={faPhone} className="h-3 w-3" />
                                             {hostel.contact_phone || hostel.owner.phone || 'Not provided'}
                                         </a>
-                                        <a
-                                            href={`mailto:${hostel.owner.email}`}
-                                            className="flex items-center gap-1.5 text-sm text-[#6B6B78] mt-1.5"
-                                        >
+                                        <a href={`mailto:${hostel.owner.email}`} className="flex items-center gap-1.5 text-sm text-[#6B6B78] mt-1.5">
                                             <FontAwesomeIcon icon={faEnvelope} className="h-3 w-3" />
                                             {hostel.owner.email}
                                         </a>
@@ -190,18 +196,17 @@ export default async function StudentHostelDetailPage({ params }: { params: Prom
                                         {availableBeds} of {totalBeds} beds available
                                     </p>
                                     <div className="flex flex-col gap-2 mt-4">
-                                        <a
-                                            href="#rooms"
-                                            className="bg-[#1E3A5F] text-white text-center py-2 rounded-sm text-sm font-medium hover:bg-[#162d4a] transition-colors"
-                                        >
+                                        <a href="#rooms" className="bg-[#1E3A5F] text-white text-center py-2 rounded-sm text-sm font-medium hover:bg-[#162d4a] transition-colors">
                                             Book a bed
                                         </a>
-                                        <a
-                                            href="#message"
-                                            className="border border-[#1E3A5F] text-[#1E3A5F] text-center py-2 rounded-sm text-sm font-medium hover:bg-[#EEE9E0] transition-colors"
-                                        >
+                                        <a href="#message" className="border border-[#1E3A5F] text-[#1E3A5F] text-center py-2 rounded-sm text-sm font-medium hover:bg-[#EEE9E0] transition-colors">
                                             Message owner
                                         </a>
+                                        {hostel.latitude != null && hostel.longitude != null && (
+                                            <a href={getDirectionsUrl(hostel.latitude, hostel.longitude)} target="_blank" rel="noopener noreferrer" className="border border-[#E0D9CF] text-[#6B6B78] text-center py-2 rounded-sm text-sm font-medium hover:bg-[#EEE9E0] transition-colors">
+                                                Get Directions
+                                            </a>
+                                        )}
                                     </div>
                                 </div>
 
@@ -212,17 +217,11 @@ export default async function StudentHostelDetailPage({ params }: { params: Prom
                                     <p className="text-sm font-medium text-[#1A1A1E]">
                                         {hostel.owner.first_name} {hostel.owner.last_name}
                                     </p>
-                                    <a
-                                        href={`tel:${hostel.contact_phone || hostel.owner.phone || ''}`}
-                                        className="flex items-center gap-1.5 text-sm text-[#6B6B78] mt-2 hover:text-[#1E3A5F]"
-                                    >
+                                    <a href={`tel:${hostel.contact_phone || hostel.owner.phone || ''}`} className="flex items-center gap-1.5 text-sm text-[#6B6B78] mt-2 hover:text-[#1E3A5F]">
                                         <FontAwesomeIcon icon={faPhone} className="h-3 w-3" />
                                         {hostel.contact_phone || hostel.owner.phone || 'Not provided'}
                                     </a>
-                                    <a
-                                        href={`mailto:${hostel.owner.email}`}
-                                        className="flex items-center gap-1.5 text-sm text-[#6B6B78] mt-1.5 hover:text-[#1E3A5F]"
-                                    >
+                                    <a href={`mailto:${hostel.owner.email}`} className="flex items-center gap-1.5 text-sm text-[#6B6B78] mt-1.5 hover:text-[#1E3A5F]">
                                         <FontAwesomeIcon icon={faEnvelope} className="h-3 w-3" />
                                         {hostel.owner.email}
                                     </a>
@@ -245,16 +244,10 @@ export default async function StudentHostelDetailPage({ params }: { params: Prom
                         )}
                         <p className="text-[10px] text-[#6B6B78]">{availableBeds} beds available</p>
                     </div>
-                    <a
-                        href="#message"
-                        className="border border-[#1E3A5F] text-[#1E3A5F] px-3 py-2 rounded-sm text-xs font-medium whitespace-nowrap"
-                    >
+                    <a href="#message" className="border border-[#1E3A5F] text-[#1E3A5F] px-3 py-2 rounded-sm text-xs font-medium whitespace-nowrap">
                         Message
                     </a>
-                    <a
-                        href="#rooms"
-                        className="bg-[#1E3A5F] text-white px-4 py-2 rounded-sm text-xs font-medium whitespace-nowrap"
-                    >
+                    <a href="#rooms" className="bg-[#1E3A5F] text-white px-4 py-2 rounded-sm text-xs font-medium whitespace-nowrap">
                         Book a bed
                     </a>
                 </div>

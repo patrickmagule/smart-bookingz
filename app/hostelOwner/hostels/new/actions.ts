@@ -38,7 +38,12 @@ type CreateListingInput = {
   facilities: string[];
   rooms: RoomInput[];
   photos: PhotoInput[];
+  latitude: number | null;
+  longitude: number | null;
 };
+
+const MUBAS_LNG =35.02838775495957;
+const MUBAS_LAT =-15.801346118270276;
 
 // ---------------------------------------------------------------------
 // Helpers
@@ -106,19 +111,37 @@ export async function createHostelListing(input: CreateListingInput) {
     }
   }
 
-  const distanceKm = input.distance.trim() ? Number(input.distance) : null;
-  if (distanceKm !== null && (Number.isNaN(distanceKm) || distanceKm < 0)) {
-    throw new Error('Distance from MUBAS must be a valid, non-negative number');
+  const hasCoords = input.latitude != null && input.longitude != null;
+
+  let distanceKm: number | null = null;
+  if (hasCoords) {
+    const [{ km }] = await sql`
+      SELECT ST_Distance(
+        ST_SetSRID(ST_MakePoint(${input.longitude}, ${input.latitude}), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(${MUBAS_LNG}, ${MUBAS_LAT}), 4326)::geography
+      ) / 1000.0 AS km
+    `;
+    distanceKm = Math.round(Number(km) * 10) / 10;
+  } else if (input.distance.trim()) {
+    distanceKm = Number(input.distance);
+    if (Number.isNaN(distanceKm) || distanceKm < 0) {
+      throw new Error('Distance from MUBAS must be a valid, non-negative number');
+    }
   }
+
+  const locationExpr = hasCoords
+      ? sql`ST_SetSRID(ST_MakePoint(${input.longitude}, ${input.latitude}), 4326)::geography`
+      : sql`NULL`;
 
   // --- hostel row ---
   const [hostel] = await sql`
     INSERT INTO hostels (
       owner_id, name, description, address, area, city, contact_phone,
-      distance_from_campus_km, gender_preference, status
+      distance_from_campus_km, gender_preference, location, status
     ) VALUES (
                ${ownerId}, ${input.hostelName}, ${input.description}, ${input.address},
                ${input.location}, 'Blantyre', ${input.contactPhone}, ${distanceKm}, ${input.gender},
+               ${locationExpr},
                'PENDING_APPROVAL'
              )
       RETURNING id

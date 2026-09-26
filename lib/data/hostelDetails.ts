@@ -24,6 +24,8 @@ export interface HostelDetail {
     other_fees: string | null;
     gender_preference: string | null;
     distance_from_campus_km: number | null;
+    latitude: number | null;
+    longitude: number | null;
     status: string;
     owner: HostelDetailOwner;
 }
@@ -74,6 +76,8 @@ type HostelDetailRow = {
     other_fees: string | null;
     gender_preference: string | null;
     distance_from_campus_km: number | string | null;
+    latitude: number | string | null;
+    longitude: number | string | null;
     status: string;
     owner_id: string;
     first_name: string;
@@ -87,11 +91,13 @@ export async function getHostelDetail(hostelId: string): Promise<HostelDetail | 
         SELECT h.id, h.name, h.description, h.address, h.area, h.city,
                h.contact_phone, h.deposit_amount, h.other_fees,
                h.gender_preference, h.distance_from_campus_km, h.status,
+               ST_Y(h.location::geometry) AS latitude,
+               ST_X(h.location::geometry) AS longitude,
                u.id AS owner_id, u.first_name, u.last_name, u.email, u.phone
         FROM hostels h
-        JOIN users u ON u.id = h.owner_id
+                 JOIN users u ON u.id = h.owner_id
         WHERE h.id = ${hostelId} AND h.status = 'PUBLISHED'
-        LIMIT 1
+            LIMIT 1
     `) as HostelDetailRow[];
 
     if (!row) return null;
@@ -109,6 +115,8 @@ export async function getHostelDetail(hostelId: string): Promise<HostelDetail | 
         gender_preference: row.gender_preference,
         distance_from_campus_km:
             row.distance_from_campus_km != null ? Number(row.distance_from_campus_km) : null,
+        latitude: row.latitude != null ? Number(row.latitude) : null,
+        longitude: row.longitude != null ? Number(row.longitude) : null,
         status: row.status,
         owner: {
             id: row.owner_id,
@@ -137,7 +145,7 @@ export async function getHostelAmenities(hostelId: string): Promise<HostelAmenit
     return (await sql`
         SELECT a.id, a.name
         FROM hostel_amenities ha
-        JOIN amenities a ON a.id = ha.amenity_id
+                 JOIN amenities a ON a.id = ha.amenity_id
         WHERE ha.hostel_id = ${hostelId}
         ORDER BY a.name
     `) as AmenityRow[];
@@ -160,22 +168,22 @@ export async function getHostelRoomsWithSpaces(hostelId: string): Promise<RoomWi
         SELECT
             r.id AS room_id, r.room_number, r.room_type, r.description, r.price_per_month,
             COALESCE(
-                (
-                    SELECT json_agg(
-                        json_build_object(
-                            'space_id', rs.id,
-                            'space_number', rs.space_number,
-                            'is_occupied', EXISTS (
-                                SELECT 1 FROM bookings b
-                                WHERE b.space_id = rs.id
-                                  AND b.status IN ('PENDING', 'CONFIRMED')
-                                  AND (b.end_date IS NULL OR b.end_date > CURRENT_DATE)
-                            )
-                        ) ORDER BY rs.space_number
-                    )
-                    FROM room_spaces rs
-                    WHERE rs.room_id = r.id AND rs.status = 'ACTIVE'
-                ), '[]'::json
+                    (
+                        SELECT json_agg(
+                                       json_build_object(
+                                               'space_id', rs.id,
+                                               'space_number', rs.space_number,
+                                               'is_occupied', EXISTS (
+                                           SELECT 1 FROM bookings b
+                                           WHERE b.space_id = rs.id
+                                             AND b.status IN ('PENDING', 'CONFIRMED')
+                                             AND (b.end_date IS NULL OR b.end_date > CURRENT_DATE)
+                                       )
+                                       ) ORDER BY rs.space_number
+                               )
+                        FROM room_spaces rs
+                        WHERE rs.room_id = r.id AND rs.status = 'ACTIVE'
+                    ), '[]'::json
             ) AS spaces
         FROM rooms r
         WHERE r.hostel_id = ${hostelId} AND r.status = 'ACTIVE'
