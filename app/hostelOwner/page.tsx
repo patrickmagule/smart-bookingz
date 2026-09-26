@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { getBedStats, getHostelCount, getOccupancyByHostel, getPendingBookings, getRecentActivity } from '@/lib/data/onwerDashboard';
 import { BookingRequestActions } from '@/components/owner/bookRequest';
 import { format } from 'date-fns';
+import { getGreeting } from '@/lib/utils/greeting';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,7 +64,9 @@ export default async function HostelOwnerPage() {
       <div className="space-y-6">
         {/* Welcome Header */}
         <div>
-          <h1 className="font-serif text-2xl text-[#1A1A1E]">Good morning, {authUser?.name?.split(' ')[0]} 👋</h1>
+          <h1 className="font-serif text-2xl text-[#1A1A1E]">
+            {getGreeting(authUser?.name?.split(' ')[0])} 👋
+          </h1>
           <p className="text-sm text-[#6B6B78] mt-0.5">Here&#39;s what&#39;s happening across your properties today.</p>
         </div>
 

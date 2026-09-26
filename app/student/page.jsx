@@ -11,6 +11,7 @@ import {
     getUnreadMessageCount,
     getStudentRecentActivity,
 } from '@/lib/data/studentDashboard';
+import { getGreeting } from '@/lib/utils/greeting';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +43,7 @@ export default async function StudentHomePage() {
         <div className="space-y-6">
             <div>
                 <h1 className="font-serif text-2xl text-[#1A1A1E]">
-                    Welcome back, {authUser?.name?.split(' ')[0]} 👋
+                    {getGreeting(authUser?.name?.split(' ')[0])} 👋
                 </h1>
                 <p className="text-sm text-[#6B6B78] mt-0.5">Here&#39;s what&#39;s happening with your bookings.</p>
             </div>

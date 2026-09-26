@@ -1,7 +1,12 @@
 import { sql } from '@/lib/db';
 import Link from 'next/link';
+import { getGreeting } from '@/lib/utils/greeting';
+import { auth } from '@/lib/auth/server';
 
 export default async function AdminDashboardPage() {
+    const { data } = await auth.getSession();
+    const authUser = data?.user;
+
     const [{ count: totalUsers }] = await sql`SELECT COUNT(*) FROM users`;
     const [{ count: totalOwners }] = await sql`SELECT COUNT(*) FROM users WHERE role = 'OWNER'`;
     const [{ count: totalStudents }] = await sql`SELECT COUNT(*) FROM users WHERE role = 'STUDENT'`;
@@ -21,7 +26,9 @@ export default async function AdminDashboardPage() {
     return (
         <div className="p-4 lg:p-6 space-y-6 max-w-5xl">
             <div>
-                <h1 className="font-serif text-2xl font-bold text-navy">Overview</h1>
+                <h1 className="font-serif text-2xl font-bold text-navy">
+                    {getGreeting(authUser?.name?.split(' ')[0])} 👋
+                </h1>
                 <p className="text-sm text-slate-500 mt-0.5">Platform-wide stats and pending actions.</p>
             </div>
 
