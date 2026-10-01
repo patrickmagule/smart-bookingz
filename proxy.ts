@@ -1,15 +1,14 @@
-// proxy.ts
 import { auth } from '@/lib/auth/server';
 
 export default auth.middleware({
-    loginUrl: '/auth/sign-in',
+    loginUrl: '/',
 });
 
 export const config = {
     matcher: [
-        /*
-         * Changed .+ to .* at the end so it matches the root path '/'
-         */
-        '/((?!api|_next/static|_next/image|favicon.ico|auth).*)',
+        '/',
+        '/student/:path*',
+        '/hostelOwner/:path*',
+        '/admin/:path*',
     ],
 };
