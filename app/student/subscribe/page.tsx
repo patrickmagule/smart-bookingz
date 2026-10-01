@@ -1,4 +1,3 @@
-// app/student/subscribe/page.tsx
 import { auth } from '@/lib/auth/server';
 import { sql } from '@/lib/db';
 import { getActiveSubscription } from '@/lib/subscription/access';
