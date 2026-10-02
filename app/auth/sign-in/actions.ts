@@ -92,6 +92,9 @@ export async function signInWithEmail(
       } else {
         redirect('/student');
       }
+    } else {
+      // User authenticated but not found in database — treat as STUDENT (default role)
+      redirect('/student');
     }
   }
 
