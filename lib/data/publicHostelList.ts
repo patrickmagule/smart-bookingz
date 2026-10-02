@@ -13,7 +13,6 @@ export type PublicHostelCard = {
     name: string;
     address: string;
     area: string;
-    distance_from_campus_km: number | null;
     gender_preference: string | null;
     cover_image: string | null;
     facilities: string[];
@@ -30,7 +29,6 @@ export async function getFeaturedHostels(limit = 3): Promise<PublicHostelCard[]>
       h.name,
       h.address,
       h.area,
-      h.distance_from_campus_km,
       h.gender_preference,
       (
         SELECT image_url FROM hostel_images
@@ -67,7 +65,6 @@ export async function getFeaturedHostels(limit = 3): Promise<PublicHostelCard[]>
 
     return rows.map((r: any) => ({
         ...r,
-        distance_from_campus_km: r.distance_from_campus_km !== null ? Number(r.distance_from_campus_km) : null,
         lowest_price: r.lowest_price !== null ? Number(r.lowest_price) : null,
         available_beds: Number(r.available_beds),
         rating: Number(r.rating),
