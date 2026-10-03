@@ -7,7 +7,12 @@ import { format } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
 
-export default async function SubscribePage() {
+export default async function SubscribePage({
+    searchParams,
+}: {
+    searchParams: Promise<{ returnTo?: string }>;
+}) {
+    const { returnTo } = await searchParams;
     const { data } = await auth.getSession();
     const [user] = await sql`
         SELECT id, first_name, last_name, email FROM users WHERE auth_id = ${data?.user?.id} LIMIT 1
@@ -41,6 +46,7 @@ export default async function SubscribePage() {
             )}
 
             <SubscribeButton
+                returnTo={returnTo}
                 customer={{
                     email: user.email,
                     firstName: user.first_name,

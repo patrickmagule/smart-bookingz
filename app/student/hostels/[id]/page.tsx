@@ -101,7 +101,7 @@ export default async function StudentHostelDetailPage({ params }: { params: Prom
                         )}
 
                         {!subscribed ? (
-                            <HostelPaywall />
+                            <HostelPaywall returnTo={`/student/hostels/${id}`} />
                         ) : (
                             <>
                                 {/* Owner card — mobile only; desktop shows it in the sidebar instead */}

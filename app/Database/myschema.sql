@@ -789,6 +789,9 @@ ALTER TABLE subscriptions
     ADD CONSTRAINT positive_subscription_amount CHECK (amount > 0),
     ADD CONSTRAINT valid_subscription_dates CHECK (expires_at IS NULL OR starts_at IS NULL OR expires_at > starts_at);
 
+ALTER TABLE subscriptions
+    ADD COLUMN return_to TEXT;
+
 -- Same role-guard pattern as your other tables (enforce_booking_student, enforce_hostel_owner)
 CREATE OR REPLACE FUNCTION enforce_subscription_student()
 RETURNS TRIGGER AS $$

@@ -9,7 +9,11 @@ const UNLOCKS = [
     { icon: faMessage, text: 'Book a bed or message the owner directly' },
 ];
 
-export default function HostelPaywall() {
+interface HostelPaywallProps {
+    returnTo?: string;
+}
+
+export default function HostelPaywall({ returnTo }: HostelPaywallProps) {
     return (
         <div className="border border-[#E0D9CF] rounded-sm bg-white p-6 sm:p-8 text-center space-y-5">
             <div className="mx-auto w-11 h-11 rounded-full bg-[#EEE9E0] flex items-center justify-center">
@@ -30,7 +34,7 @@ export default function HostelPaywall() {
                 ))}
             </ul>
             <Link
-                href="/student/subscribe"
+                href={returnTo ? `/student/subscribe?returnTo=${encodeURIComponent(returnTo)}` : '/student/subscribe'}
                 className="inline-block bg-[#1E3A5F] text-white px-6 py-2.5 rounded-sm text-sm font-medium hover:bg-[#162d4a] transition-colors"
             >
                 View subscription plans

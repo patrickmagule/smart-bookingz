@@ -22,6 +22,7 @@ export default async function SubscriptionStatusPage({
     }
 
     const result = await verifyAndActivateSubscription(tx_ref);
+    const defaultRedirect = result.returnTo || '/student/hostels';
 
     return (
         <div className="max-w-md py-16 text-center space-y-4">
@@ -33,10 +34,10 @@ export default async function SubscriptionStatusPage({
                         Your {PLAN_CONFIG[result.plan!]?.label} plan is now active.
                     </p>
                     <Link
-                        href="/student/hostels"
+                        href={defaultRedirect}
                         className="inline-block bg-[#1E3A5F] text-white px-4 py-2 rounded-sm text-sm font-medium hover:bg-[#162d4a]"
                     >
-                        Browse hostels →
+                        Continue →
                     </Link>
                 </>
             )}

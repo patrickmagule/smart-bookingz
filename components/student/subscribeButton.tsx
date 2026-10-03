@@ -29,10 +29,11 @@ declare global {
 }
 
 interface SubscribeButtonProps {
+    returnTo?: string;
     customer: { email: string; firstName: string; lastName: string };
 }
 
-export default function SubscribeButton({ customer }: SubscribeButtonProps) {
+export default function SubscribeButton({ returnTo, customer }: SubscribeButtonProps) {
     const [selected, setSelected] = useState<SubscriptionPlan>('WEEKLY');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -44,7 +45,7 @@ export default function SubscribeButton({ customer }: SubscribeButtonProps) {
             const res = await fetch('/api/subscriptions/initiate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ plan: selected }),
+                body: JSON.stringify({ plan: selected, returnTo }),
             });
 
             if (!res.ok) {
@@ -57,13 +58,6 @@ export default function SubscribeButton({ customer }: SubscribeButtonProps) {
                 throw new Error('Could not start checkout. Please try again.');
             }
 
-            // Both redirects point at the status page, not at the webhook API
-            // route — that route only handles server-to-server POSTs (configured
-            // separately via the PayChangu Dashboard's webhook URL setting) and
-            // was never meant to receive a browser redirect. The status page
-            // re-verifies tx_ref server-side, so it's a safe landing spot
-            // whether PayChangu sends the user here on success (callback_url)
-            // or on cancel/failure (return_url).
             const statusUrl = `${window.location.origin}/student/subscribe/status?tx_ref=${tx_ref}`;
 
             window.PaychanguCheckout({

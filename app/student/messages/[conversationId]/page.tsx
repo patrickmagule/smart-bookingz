@@ -78,7 +78,7 @@ export default async function ConversationThreadPage({
                         Subscribe to read new messages and reply to {conversation.owner_first_name}.
                     </p>
                     <Link
-                        href="/student/subscribe"
+                        href={`/student/subscribe?returnTo=${encodeURIComponent(`/student/messages/${conversationId}`)}`}
                         className="inline-block bg-[#1E3A5F] text-white px-4 py-2 rounded-sm text-xs font-medium hover:bg-[#162d4a] transition-colors"
                     >
                         View subscription plans

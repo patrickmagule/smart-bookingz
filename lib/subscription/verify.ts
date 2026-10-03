@@ -6,19 +6,20 @@ export interface VerifyResult {
     status: 'ACTIVE' | 'FAILED' | 'PENDING' | 'NOT_FOUND';
     plan?: SubscriptionPlan;
     expiresAt?: string;
+    returnTo?: string | null;
 }
 
 // Shared by the webhook route and the subscribe/status return page — both
 // need to ask "did this tx_ref actually succeed?" and activate if so.
 export async function verifyAndActivateSubscription(txRef: string): Promise<VerifyResult> {
     const [sub] = await sql`
-        SELECT plan, amount, status, expires_at FROM subscriptions WHERE tx_ref = ${txRef}
+        SELECT plan, amount, status, expires_at, return_to FROM subscriptions WHERE tx_ref = ${txRef}
     `;
     if (!sub) return { status: 'NOT_FOUND' };
 
     // Already activated (e.g. the webhook beat us to it) — nothing to redo.
     if (sub.status === 'ACTIVE') {
-        return { status: 'ACTIVE', plan: sub.plan, expiresAt: sub.expires_at };
+        return { status: 'ACTIVE', plan: sub.plan, expiresAt: sub.expires_at, returnTo: sub.return_to };
     }
 
     const verifyRes = await fetch(`https://api.paychangu.com/verify-payment/${txRef}`, {
@@ -39,7 +40,7 @@ export async function verifyAndActivateSubscription(txRef: string): Promise<Veri
             WHERE tx_ref = ${txRef}
                 RETURNING plan, expires_at
         `;
-        return { status: 'ACTIVE', plan: updated.plan, expiresAt: updated.expires_at };
+        return { status: 'ACTIVE', plan: updated.plan, expiresAt: updated.expires_at, returnTo: sub.return_to };
     }
 
     if (transactionStatus === 'failed' || transactionStatus === 'cancelled') {

@@ -12,22 +12,22 @@ export async function POST(req: NextRequest) {
     const [user] = await sql`SELECT id FROM users WHERE auth_id = ${data.user.id} LIMIT 1`;
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    let body: { plan?: SubscriptionPlan };
+    let body: { plan?: SubscriptionPlan; returnTo?: string };
     try {
         body = await req.json();
     } catch {
         return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
 
-    const { plan } = body;
+    const { plan, returnTo } = body;
     const config = plan ? PLAN_CONFIG[plan] : undefined;
     if (!config) return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
 
     const tx_ref = `sub_${randomUUID()}`;
 
     await sql`
-        INSERT INTO subscriptions (student_id, plan, amount, tx_ref, status)
-        VALUES (${user.id}, ${plan}, ${config.amount}, ${tx_ref}, 'PENDING')
+        INSERT INTO subscriptions (student_id, plan, amount, tx_ref, status, return_to)
+        VALUES (${user.id}, ${plan}, ${config.amount}, ${tx_ref}, 'PENDING', ${returnTo || null})
     `;
 
     return NextResponse.json({ tx_ref, amount: config.amount });
