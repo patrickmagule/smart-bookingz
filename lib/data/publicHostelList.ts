@@ -20,6 +20,7 @@ export type PublicHostelCard = {
     available_beds: number;
     rating: number;
     review_count: number;
+    distance_from_campus_km: number | null;
 };
 
 export async function getFeaturedHostels(limit = 3): Promise<PublicHostelCard[]> {
@@ -56,7 +57,8 @@ export async function getFeaturedHostels(limit = 3): Promise<PublicHostelCard[]>
           )
       ), 0) as available_beds,
       COALESCE((SELECT AVG(rating) FROM reviews WHERE hostel_id = h.id), 0)::float as rating,
-      COALESCE((SELECT COUNT(*)::int FROM reviews WHERE hostel_id = h.id), 0) as review_count
+      COALESCE((SELECT COUNT(*)::int FROM reviews WHERE hostel_id = h.id), 0) as review_count,
+      h.distance_from_campus_km
     FROM hostels h
     WHERE h.status = 'PUBLISHED'
     ORDER BY rating DESC, review_count DESC, h.created_at DESC
@@ -70,6 +72,7 @@ export async function getFeaturedHostels(limit = 3): Promise<PublicHostelCard[]>
         rating: Number(r.rating),
         review_count: Number(r.review_count),
         facilities: r.facilities ?? [],
+        distance_from_campus_km: r.distance_from_campus_km !== null ? Number(r.distance_from_campus_km) : null,
     })) as PublicHostelCard[];
 }
 
